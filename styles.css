@@ -199,6 +199,12 @@ details.ex[open] { padding-bottom: 12px; }
 .list-item.static { grid-template-columns: minmax(0, 1fr) auto; align-items: center; cursor: default; }
 .list-item.static small { grid-column: 1; }
 .list-item.static .btn { grid-column: 2; grid-row: 1 / span 2; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: var(--line); }
+.seg button { min-height: 44px; border: 0; border-radius: 10px; background: none; font-size: 16px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.seg button.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
+.num-input { width: 100%; min-height: 64px; padding: 0 16px; border-radius: 14px; border: 2px solid var(--line); background: var(--card); color: var(--ink); font: 700 30px/1 var(--font); font-variant-numeric: tabular-nums; text-align: center; }
+.num-input:focus { border-color: var(--accent); outline: none; }
+#walk-hint.error { color: var(--bad); font-weight: 600; }
 .wheels { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 28px; font-weight: 700; }
 .wheels select { font: inherit; font-variant-numeric: tabular-nums; min-height: 64px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); color: var(--ink); }
 

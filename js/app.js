@@ -9,6 +9,7 @@ import { esc, exName, seenKey, frameHtml, howToHtml, openSheet, closeSheet, toas
 import { startTimer, bindTimer } from "./timer.js";
 
 const STEPS_PER_KM = 1350;
+const MAX_KM_PER_DAY = 60;
 const SEEN_ENOUGH = 2;
 const WEIGHT_EVERY_DAYS = 7;
 const WALK_NORM = [[2, 4], [4, 5], [8, 6], [Infinity, 7]];
@@ -171,7 +172,7 @@ function markTiles(week) {
   return `<h3 class="section-title">Отметить сегодня</h3>
   <div class="tiles">
     <div class="tile">
-      <button type="button" class="tile-main" data-walk-edit><b>Ходьба</b><span>${fmtKm(d.km)} из ${norm} км</span></button>
+      <button type="button" class="tile-main" data-walk><b>Ходьба ✎</b><span>${fmtKm(d.km)} из ${norm} км · нажмите, чтобы ввести</span></button>
       <div class="tile-actions"><button type="button" class="btn small" data-km="1">+1 км</button><button type="button" class="btn small" data-km="2">+2 км</button></div>
     </div>
     <div class="tile ${d.morning ? "on" : ""}">
@@ -332,37 +333,81 @@ function otherSheet() {
   body.addEventListener("click", onTodayClick);
 }
 
-function walkSheet() {
-  const body = openSheet(`<h3 class="sheet-title">Идём гулять</h3>
-    <p class="muted">Темп бодрый: дышите чаще, но можете говорить. 1 км ≈ ${STEPS_PER_KM} шагов.</p>
-    <div class="row3"><button type="button" class="btn big" data-km="1">+1 км</button><button type="button" class="btn big" data-km="2">+2 км</button><button type="button" class="btn big" data-km="3">+3 км</button></div>
-    <p class="muted center">Сегодня: <b>${fmtKm(dayOf(today()).km)} км</b></p>`);
-  body.addEventListener("click", (e) => {
-    const km = e.target.closest("[data-km]")?.dataset.km;
-    if (!km) return;
-    addKm(Number(km));
-    closeSheet();
-  });
+/** Parses "3,5" / "3.5" km or "8 432" steps into km; null when it is not a sensible number. */
+function parseWalk(text, unit) {
+  const n = Number(String(text).replace(/\s/g, "").replace(",", "."));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const km = unit === "steps" ? n / STEPS_PER_KM : n;
+  return km > MAX_KM_PER_DAY ? null : Math.round(km * 10) / 10;
 }
 
-function walkEditSheet() {
-  const body = openSheet(`<h3 class="sheet-title">Ходьба сегодня: ${fmtKm(dayOf(today()).km)} км</h3>
-    <div class="row3"><button type="button" class="btn big" data-km="-0.5">−0,5</button><button type="button" class="btn big" data-km="0.5">+0,5</button><button type="button" class="btn big" data-reset>Сбросить</button></div>`);
+function walkSheet(date = today()) {
+  const isToday = date === today();
+  let unit = "km";
+  const body = openSheet(`<h3 class="sheet-title">Ходьба ${isToday ? "сегодня" : "· " + esc(dateTitle(date))}</h3>
+    <p class="muted">Уже записано: <b>${fmtKm(dayOf(date).km)} км</b></p>
+    <div class="seg" role="group" aria-label="Единицы">
+      <button type="button" class="on" data-unit="km">Километры</button>
+      <button type="button" data-unit="steps">Шаги</button>
+    </div>
+    <label class="sr" for="walk-input">Сколько прошли</label>
+    <input id="walk-input" class="num-input" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" placeholder="например, 3,5">
+    <p class="muted" id="walk-hint">Шаги можно взять из приложения «Здоровье». 1 км ≈ ${STEPS_PER_KM} шагов.</p>
+    <button type="button" class="btn primary big" data-add>Добавить к записанному</button>
+    <button type="button" class="btn big" data-set>Это итог за день</button>
+    <div class="row3"><button type="button" class="btn" data-km="1">+1 км</button><button type="button" class="btn" data-km="2">+2 км</button><button type="button" class="btn" data-km="3">+3 км</button></div>
+    <button type="button" class="btn link" data-reset>Обнулить ходьбу за этот день</button>`);
+  const input = body.querySelector("#walk-input");
+  const hint = body.querySelector("#walk-hint");
+  const showHint = () => {
+    const km = parseWalk(input.value, unit);
+    hint.classList.remove("error");
+    if (!input.value.trim()) { hint.textContent = `Шаги можно взять из приложения «Здоровье». 1 км ≈ ${STEPS_PER_KM} шагов.`; return; }
+    hint.textContent = km === null ? "" : unit === "steps" ? `≈ ${fmtKm(km)} км` : `≈ ${Math.round(km * STEPS_PER_KM).toLocaleString("ru-RU")} шагов`;
+  };
+  const apply = (mode) => {
+    const km = parseWalk(input.value, unit);
+    if (km === null) {
+      hint.textContent = unit === "steps" ? "Введите число шагов, например 8432." : "Введите километры, например 3,5.";
+      hint.classList.add("error");
+      input.focus();
+      return;
+    }
+    const total = mode === "add" ? dayOf(date).km + km : km;
+    setWalk(date, total);
+    closeSheet();
+  };
+  input.addEventListener("input", showHint);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") apply("add"); });
   body.addEventListener("click", (e) => {
-    const km = e.target.closest("[data-km]")?.dataset.km;
-    if (km) addKm(Number(km));
-    if (e.target.closest("[data-reset]")) setDay(today(), { km: 0 });
-    if (km || e.target.closest("[data-reset]")) closeSheet();
+    const el = e.target.closest("button");
+    if (!el) return;
+    if (el.dataset.unit) {
+      unit = el.dataset.unit;
+      body.querySelectorAll("[data-unit]").forEach((b) => b.classList.toggle("on", b === el));
+      input.placeholder = unit === "steps" ? "например, 8432" : "например, 3,5";
+      input.inputMode = unit === "steps" ? "numeric" : "decimal";
+      showHint();
+      input.focus();
+    }
+    if (el.hasAttribute("data-add")) apply("add");
+    if (el.hasAttribute("data-set")) apply("set");
+    if (el.dataset.km) { setWalk(date, dayOf(date).km + Number(el.dataset.km)); closeSheet(); }
+    if (el.hasAttribute("data-reset")) { setWalk(date, 0); closeSheet(); }
   });
+  input.focus();
 }
 
 function setDay(date, patch) {
   commit({ ...db, days: { ...db.days, [date]: { ...dayOf(date), ...patch } } });
 }
+function setWalk(date, km) {
+  const value = Math.min(MAX_KM_PER_DAY, Math.max(0, Math.round(km * 10) / 10));
+  setDay(date, { km: value });
+  toast(`Ходьба${date === today() ? " сегодня" : ""}: ${fmtKm(value)} км`);
+}
 function addKm(delta) {
-  const km = Math.max(0, Math.round((dayOf(today()).km + delta) * 2) / 2);
-  setDay(today(), { km });
-  toast(`Ходьба сегодня: ${fmtKm(km)} км`);
+  setWalk(today(), dayOf(today()).km + delta);
 }
 
 function onTodayClick(e) {
@@ -372,7 +417,6 @@ function onTodayClick(e) {
   if (el.hasAttribute("data-walk")) { closeSheet(); walkSheet(); return; }
   if (el.hasAttribute("data-other")) { otherSheet(); return; }
   if (el.dataset.km) { addKm(Number(el.dataset.km)); return; }
-  if (el.hasAttribute("data-walk-edit")) { walkEditSheet(); return; }
   if (el.dataset.toggle) { const k = el.dataset.toggle; setDay(today(), { [k]: !dayOf(today())[k] }); return; }
   if (el.hasAttribute("data-weight")) { askWeight(currentWeight(), saveWeight); return; }
   if (el.hasAttribute("data-snooze")) { commit({ ...db, weightSnooze: today() }); return; }
@@ -455,7 +499,7 @@ function dayEditSheet(date) {
   const d = dayOf(date);
   const body = openSheet(`<h3 class="sheet-title">${esc(dateTitle(date))}</h3>
     <div class="list">${ss.map((s) => `<div class="list-item static"><b>${esc(kindTitle(s.kind, s.type))}</b><small>${s.time} · ${s.minutes} мин · ${s.kcal} ккал</small><button type="button" class="btn small danger" data-del="${esc(s.id)}">Удалить</button></div>`).join("") || `<p class="muted">Тренировок не было.</p>`}</div>
-    <div class="row3"><button type="button" class="btn" data-km="-0.5">−0,5 км</button><span class="center"><b>${fmtKm(d.km)} км</b></span><button type="button" class="btn" data-km="0.5">+0,5 км</button></div>
+    <button type="button" class="btn big" data-walk-day>Ходьба: ${fmtKm(d.km)} км · изменить</button>
     <div class="row"><button type="button" class="btn ${d.morning ? "done" : ""}" data-t="morning">Утро ${d.morning ? "✓" : ""}</button><button type="button" class="btn ${d.cold ? "done" : ""}" data-t="cold">Холод ${d.cold ? "✓" : ""}</button></div>`);
   body.addEventListener("click", (e) => {
     const el = e.target.closest("button");
@@ -464,7 +508,7 @@ function dayEditSheet(date) {
       if (el.dataset.armed !== "1") { el.dataset.armed = "1"; el.textContent = "Точно удалить?"; return; }
       commit({ ...db, sessions: db.sessions.filter((s) => s.id !== el.dataset.del) });
     }
-    if (el.dataset.km) setDay(date, { km: Math.max(0, Math.round((dayOf(date).km + Number(el.dataset.km)) * 2) / 2) });
+    if (el.hasAttribute("data-walk-day")) { walkSheet(date); return; }
     if (el.dataset.t) setDay(date, { [el.dataset.t]: !dayOf(date)[el.dataset.t] });
     dayEditSheet(date);
   });
