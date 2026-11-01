@@ -156,3 +156,20 @@ test("every strength session trains legs, push, pull and core across the week", 
   const all = new Set(Object.values(WORKOUTS).flatMap((w) => w.list.map((k) => EXERCISES[k].region)));
   for (const r of ["legs", "push", "pull", "core"]) assert.ok(all.has(r), `missing ${r}`);
 });
+
+test("changing between standing and floor always leaves at least 30 s, on every level", () => {
+  for (const type of ["A", "B", "C"]) {
+    for (let level = 1; level <= 6; level += 1) {
+      const steps = buildSession(type, type, level, 4).steps;
+      steps.forEach((s, i) => {
+        if (s.phase !== "rest") return;
+        const prev = steps[i - 1];
+        if (EXERCISES[prev.ex].pos !== EXERCISES[s.ex].pos) assert.ok(s.sec >= 30, `${type}${level}: ${prev.ex} → ${s.ex} rest ${s.sec}`);
+      });
+    }
+  }
+});
+
+test("the cardio circuit does not start with burpees", () => {
+  assert.notEqual(WORKOUTS.C.list[0], "burpee");
+});

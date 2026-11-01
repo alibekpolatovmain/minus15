@@ -33,7 +33,7 @@ export function frameHtml(key, frame = 0) {
   const ex = EXERCISES[key];
   if (ex.breathe) return `<div class="breath" aria-label="Вдох 4 секунды, выдох 6"><i></i></div>`;
   if (ex.figure) return figureSvg(ex.figure, Math.min(frame, 1));
-  const n = ex.frames === 2 ? Math.min(frame, 1) : 0;
+  const n = ex.frames === 2 ? Math.min(frame, 1) : ex.frameIndex ?? 0;
   return `<img src="${IMG(ex.img, n)}" alt="${esc(ex.name)}" draggable="false">`;
 }
 
@@ -68,7 +68,7 @@ export function howToHtml(key, level, label, { showTitle = true } = {}) {
   const title = showTitle ? `<h3 class="howto-title">${esc(exName(key, level, label))}</h3><p class="gives">${esc(ex.gives)}</p>` : "";
   return `${pairHtml(key)}${home}${title}
     <ol class="cues">${ex.cues.slice(0, 3).map((c) => `<li>${esc(c)}</li>`).join("")}</ol>
-    ${stop}${videoHtml(key)}`;
+    ${stop}${videoHtml(key)}${ex.why ? `<details class="why"><summary>Почему именно это упражнение</summary><p>${esc(ex.why)}</p></details>` : ""}`;
 }
 
 export function bindVideos() {
@@ -93,6 +93,7 @@ export function openSheet(html, { onClose } = {}) {
   fresh.className = "sheet-body";
   fresh.innerHTML = html;
   root.querySelector(".sheet-body").replaceWith(fresh);
+  root.querySelector(".sheet-panel").scrollTop = 0;
   root.hidden = false;
   sheetClose = onClose || null;
   requestAnimationFrame(() => root.classList.add("open"));

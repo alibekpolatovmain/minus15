@@ -25,6 +25,7 @@
   <section id="screen-diary" class="screen" aria-label="Дневник" hidden></section>
   <section id="screen-help" class="screen" aria-label="Справка" hidden>
     <header class="large-title"><h1>Справка</h1><p>Всё, что не нужно каждый день</p></header>
+    <div class="settings-row"><label class="switch" for="opt-sound"><input type="checkbox" id="opt-sound" checked> Звук и голос в таймере</label></div>
 
     <details class="help" open>
       <summary>Как пользоваться</summary>
@@ -34,7 +35,6 @@
         <li>В конце нажмите, как было. Завтра приложение само предложит следующее.</li>
       </ol>
       <p class="muted">Очередь силовых: «Всё тело: ноги и грудь» → «Всё тело: плечи и спина» → «Кардио-круг». После силовой на следующий день предлагается мягкая «Спина и шея». Перед каждым упражнением 10 секунд «Приготовься», между кругами 45 секунд отдыха. «Легко» два раза подряд делает тренировки тяжелее, «Тяжело» сразу облегчает. Пропуски не страшны: после паузы нагрузка сама снижается.</p>
-      <label class="switch" for="opt-sound"><input type="checkbox" id="opt-sound" checked> Звук и голос в таймере</label>
     </details>
 
     <details class="help">
@@ -147,9 +147,9 @@
 </main>
 
 <nav class="tabbar" aria-label="Разделы">
-  <button type="button" data-tab="today" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg><span>Сегодня</span></button>
+  <button type="button" data-tab="today" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Сегодня</span></button>
   <button type="button" data-tab="diary" aria-current="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg><span>Дневник</span></button>
-  <button type="button" data-tab="help" aria-current="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v.5M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7"/></svg><span>Справка</span></button>
+  <button type="button" data-tab="help" aria-current="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M8 7h7"/></svg><span>Справка</span></button>
 </nav>
 
 <div id="timer" class="timer" hidden role="dialog" aria-modal="true" aria-labelledby="t-name" data-phase="warm">
@@ -166,12 +166,6 @@
     <p class="t-cue" id="t-cue"></p>
     <div class="t-media" id="t-media"></div>
     <p class="t-next" id="t-next"></p>
-    <div class="t-paused" id="t-paused" hidden>
-      <p class="t-paused-title" id="t-paused-title">Пауза</p>
-      <button type="button" class="btn primary huge" data-act="resume" id="t-resume">Продолжить</button>
-      <button type="button" class="btn big" data-act="how">▶ Видео и техника</button>
-      <button type="button" class="btn link" data-act="stop">Закончить тренировку</button>
-    </div>
     <div class="t-controls">
       <button type="button" class="t-how" id="t-how">▶ Видео и техника</button>
       <div class="t-row">
@@ -179,6 +173,7 @@
         <button type="button" class="t-main" id="t-pause">Пауза</button>
         <button type="button" class="t-side" id="t-next-btn" aria-label="Дальше">→</button>
       </div>
+      <button type="button" class="btn link t-stop" id="t-stop" hidden>Закончить тренировку</button>
     </div>
   </div>
   <div class="t-done" id="t-done" hidden>

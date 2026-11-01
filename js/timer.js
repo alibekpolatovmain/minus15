@@ -12,6 +12,7 @@ const PAUSE_LIKE = new Set(["rest", "prep"]);
 const SOFT_KINDS = new Set(["light", "stand", "morning", "chin"]);
 const FLOW_LABEL = { morning: "УТРО", chin: "ПОДБОРОДОК", light: "СПИНА И ШЕЯ" };
 const NUM_WORDS = ["", "один", "два", "три", "четыре", "пять", "шесть"];
+const NUM_GEN = ["", "одного", "двух", "трёх", "четырёх", "пяти", "шести"];
 
 let run = null;
 const $ = (id) => document.getElementById(id);
@@ -72,19 +73,19 @@ function segmentsHtml(step) {
   return `<div class="segs">${Array.from({ length: step.count }, (_, i) => `<i class="${i < step.idx ? "done" : i === step.idx ? "cur" : ""}"></i>`).join("")}</div>`;
 }
 
-const roundWords = (step) => `Круг ${NUM_WORDS[step.round] || step.round} из ${NUM_WORDS[step.rounds] || step.rounds}`;
+const roundWords = (step) => `Круг ${NUM_WORDS[step.round] || step.round} из ${NUM_GEN[step.rounds] || step.rounds}`;
 
+/** Voice: the position cue comes during the pause before an exercise, so you can get into place in time. */
 function announce(step) {
   const name = stepName(step);
   const cue = EXERCISES[step.ex].cues[0];
   if (step.phase === "prep") { say(`${step.round ? roundWords(step) + ". " : ""}Приготовься: ${name}. ${cue}`); return; }
   if (step.phase === "rest") {
     const next = stepName({ ...step, label: null });
-    say(step.roundBreak ? `Круг закончен. Отдых ${step.sec} секунд. Дальше ${roundWords(step).toLowerCase()}: ${next}` : `Отдых. Дальше: ${next}`);
+    say(step.roundBreak ? `Круг закончен. Отдых ${step.sec} секунд. Потом ${roundWords(step).toLowerCase()}: ${next}. ${cue}` : `Отдых. Дальше: ${next}. ${cue}`);
     return;
   }
-  if (run.steps[run.i - 1]?.phase === "prep") { say("Начали!"); return; }
-  say(step.phase === "work" && step.round === 1 ? `${name}. ${cue}` : name);
+  if (step.phase === "work") say(run.steps[run.i - 1]?.phase === "prep" ? "Начали!" : name);
 }
 
 /* ---------- render ---------- */
@@ -93,19 +94,18 @@ function render() {
   const next = run.steps.slice(run.i + 1).find((s) => !PAUSE_LIKE.has(s.phase));
   const root = $("timer");
   root.dataset.phase = step.phase;
-  root.classList.toggle("paused", run.paused);
-  $("t-phase").textContent = step.phase === "flow" ? FLOW_LABEL[run.session.kind] || PHASE.flow : PHASE[step.phase];
+  root.classList.toggle("paused", run.paused && !run.ready);
+  const phaseLabel = step.phase === "flow" ? FLOW_LABEL[run.session.kind] || PHASE.flow : PHASE[step.phase];
+  $("t-phase").textContent = run.ready ? "ГОТОВЫ?" : run.paused ? "ПАУЗА" : phaseLabel;
   $("t-progress").innerHTML = `${esc(progressText(step))}${segmentsHtml(step)}`;
   const isRest = step.phase === "rest";
   const upcoming = stepName({ ...step, label: isRest ? null : step.label });
   $("t-name").textContent = step.roundBreak ? "Отдых между кругами" : isRest ? `Дальше: ${upcoming}` : upcoming;
-  $("t-cue").textContent = step.roundBreak ? `Попейте воды. Потом круг ${step.round}: «${upcoming}»` : EXERCISES[step.ex].cues[0];
+  $("t-cue").textContent = run.ready ? "Займите место и нажмите «Начать»" : step.roundBreak ? `Попейте воды. Потом круг ${step.round}: «${upcoming}»` : EXERCISES[step.ex].cues[0];
   $("t-media").innerHTML = frameHtml(step.ex, 0);
   $("t-next").innerHTML = PAUSE_LIKE.has(step.phase) ? "" : next ? `<span>Потом:</span> ${esc(stepName(next))}` : "Последнее упражнение";
   $("t-pause").textContent = run.ready ? "Начать" : run.paused ? "Продолжить" : "Пауза";
-  $("t-paused").hidden = !run.paused;
-  $("t-paused-title").textContent = run.ready ? `Готовы? Первое: ${upcoming}` : "Пауза";
-  $("t-resume").textContent = run.ready ? "Начать" : "Продолжить";
+  $("t-stop").hidden = !run.paused || run.ready;
   updateClock();
 }
 
@@ -114,7 +114,7 @@ function updateClock() {
   const left = run.paused ? run.remaining : run.endAt - Date.now();
   const total = Math.max(0, Math.ceil(left / 1000));
   $("t-clock").textContent = `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
-  $("t-bar").style.width = `${Math.min(100, Math.max(0, 100 - (left / (step.sec * 1000)) * 100))}%`;
+  $("t-bar").style.width = `${Math.min(100, Math.max(0, (left / (step.sec * 1000)) * 100))}%`;
   const spent = run.steps.map((s, i) => (i === run.i ? (run.spent[i] || 0) + (s.sec * 1000 - Math.max(0, left)) : run.spent[i] || 0));
   const live = sessionTotals(run.session, run.weight, spent);
   $("t-kcal").textContent = `${Math.round(live.kcal)}`;
@@ -122,8 +122,9 @@ function updateClock() {
 }
 
 /* ---------- engine ---------- */
-function enter(i) {
+function enter(i, { paused = false } = {}) {
   run.i = i;
+  run.paused = paused;
   run.remaining = run.steps[i].sec * 1000;
   run.endAt = Date.now() + run.remaining;
   run.lastBeep = null;
@@ -131,7 +132,7 @@ function enter(i) {
   run.frame = 0;
   run.flipAt = Date.now() + FLIP_MS;
   render();
-  if (!run.ready) announce(run.steps[i]);
+  if (!paused) announce(run.steps[i]);
 }
 
 function leave() {
@@ -148,9 +149,11 @@ function tick() {
   updateClock();
   const s = Math.ceil(left / 1000);
   if (s <= 3 && s >= 1 && s !== run.lastBeep) { run.lastBeep = s; beep(660, 120); }
-  if (EXERCISES[step.ex].side && !PAUSE_LIKE.has(step.phase) && !run.sideSaid && left <= (step.sec * 1000) / 2) {
+  const ex = EXERCISES[step.ex];
+  if ((ex.half || ex.side) && !PAUSE_LIKE.has(step.phase) && !run.sideSaid && left <= (step.sec * 1000) / 2) {
     run.sideSaid = true;
-    say("Смени сторону");
+    beep(880, 200);
+    say(ex.half || "Смени сторону");
   }
   if (frameCount(step.ex) === 2 && !PAUSE_LIKE.has(step.phase) && now >= run.flipAt) {
     run.frame = 1 - run.frame;
@@ -183,38 +186,39 @@ function setPaused(paused) {
   if (starting) announce(run.steps[run.i]);
 }
 
+/** ← and → move between steps but keep the pause (and the «Начать» gate) as it was. */
 function forward() {
   if (!run || run.finished) return;
+  const wasPaused = run.paused;
   leave();
   const target = run.i + 1;
-  run.paused = false;
-  run.ready = false;
   if (target >= run.steps.length) finish();
-  else enter(target);
+  else enter(target, { paused: wasPaused });
 }
 
 function back() {
   if (!run || run.finished) return;
+  const wasPaused = run.paused;
   const now = Date.now();
   const double = now - (run.lastBackAt || 0) < BACK_DOUBLE_MS;
   run.lastBackAt = now;
   leave();
-  run.paused = false;
-  run.ready = false;
-  if (!double) { enter(run.i); return; }
+  if (!double) { enter(run.i, { paused: wasPaused }); return; }
   let target = run.i - 1;
   while (target > 0 && PAUSE_LIKE.has(run.steps[target].phase)) target -= 1;
-  enter(Math.max(0, target));
+  enter(Math.max(0, target), { paused: wasPaused });
 }
 
 function showHowTo() {
   const step = run.steps[run.i];
+  const resume = !run.paused;
   setPaused(true);
-  const body = openSheet(`${howToHtml(step.ex, run.level, step.label)}<button type="button" class="btn primary big" data-close>Продолжить</button>`, { onClose: () => setPaused(false) });
+  const body = openSheet(`${howToHtml(step.ex, run.level, step.label)}<div class="sheet-foot"><button type="button" class="btn primary big" data-close>${resume ? "Продолжить тренировку" : "Закрыть"}</button></div>`, { onClose: () => resume && setPaused(false) });
   body.querySelector("[data-close]").addEventListener("click", closeSheet);
 }
 
 function confirmClose() {
+  const resume = !run.paused;
   setPaused(true);
   const body = openSheet(`<h3 class="sheet-title">Закончить тренировку?</h3>
     <button type="button" class="btn primary big" data-act="continue">Продолжить</button>
@@ -223,7 +227,7 @@ function confirmClose() {
   body.addEventListener("click", (e) => {
     const act = e.target.closest("[data-act]")?.dataset.act;
     if (!act) return;
-    if (act === "continue") { closeSheet(); setPaused(false); }
+    if (act === "continue") { closeSheet(); if (resume) setPaused(false); }
     if (act === "finish") { closeSheetSilently(); leave(); finish(); }
     if (act === "drop") { closeSheetSilently(); end(null); }
   });
@@ -247,12 +251,12 @@ function finish() {
   root.classList.remove("paused");
   $("t-run").hidden = true;
   $("t-done").hidden = false;
-  if (totals.workSeconds < MIN_WORK_TO_RECORD_S) { end(null); return; }
+  if (totals.workSeconds < MIN_WORK_TO_RECORD_S) { end({ skipped: true }); return; }
   const partial = totals.ratio < RULES.PARTIAL_RATIO;
   const asksFeel = !partial && !SOFT_KINDS.has(run.session.kind);
   $("d-min").textContent = Math.round(totals.seconds / 60);
   $("d-kcal").textContent = `${Math.round(totals.kcal)}`;
-  $("d-title").textContent = partial ? "Записать как неполную?" : "Готово!";
+  $("d-title").textContent = partial ? "Сделано меньше половины. Записать?" : "Готово!";
   $("d-feel").hidden = !asksFeel;
   $("d-ask").hidden = !asksFeel;
   $("d-save").hidden = asksFeel;
@@ -289,7 +293,7 @@ export function startTimer(session, { level, weight, sound, onEnd }) {
   $("t-done").hidden = true;
   $("timer").hidden = false;
   document.body.classList.add("locked");
-  enter(0);
+  enter(0, { paused: true });
   run.interval = setInterval(tick, TICK_MS);
 }
 
@@ -300,12 +304,7 @@ export function bindTimer() {
   $("t-back").addEventListener("click", back);
   $("t-close").addEventListener("click", () => run && !run.finished && confirmClose());
   $("t-how").addEventListener("click", () => run && !run.finished && showHowTo());
-  $("t-paused").addEventListener("click", (e) => {
-    const act = e.target.closest("[data-act]")?.dataset.act;
-    if (act === "resume") setPaused(false);
-    if (act === "how") showHowTo();
-    if (act === "stop") confirmClose();
-  });
+  $("t-stop").addEventListener("click", () => run && !run.finished && confirmClose());
   $("d-feel").addEventListener("click", (e) => {
     const feel = e.target.closest("[data-feel]")?.dataset.feel;
     if (feel && run?.finished) record(feel);

@@ -10,6 +10,7 @@ import { startTimer, bindTimer } from "./timer.js";
 
 const STEPS_PER_KM = 1350;
 const MAX_KM_PER_DAY = 60;
+const HOME_HINT_DELAY_MS = 3800;
 const WALK_KCAL_PER_KG_KM = 0.5;
 const SEEN_ENOUGH = 2;
 const WEIGHT_EVERY_DAYS = 7;
@@ -42,12 +43,24 @@ function dayOf(date) {
   return db.days[date] || { km: 0, morning: false, cold: false, chin: false };
 }
 function kindTitle(kind, type) {
-  if (kind === "short") return `Короткая: ${WORKOUTS[type].title.toLowerCase()}`;
+  if (kind === "short") return `Короткая · ${WORKOUTS[type].title.replace("Всё тело: ", "")}`;
   return KIND_TITLE[kind] || WORKOUTS[kind].title;
 }
 function planFor(kind, type, params) {
   const level = SOFT_KINDS.has(kind) ? db.level : params.level;
   return buildSession(kind, type, level, params.rounds);
+}
+function plural(n, one, few, many) {
+  const a = Math.abs(n) % 100;
+  const b = a % 10;
+  if (a > 10 && a < 20) return many;
+  if (b === 1) return one;
+  if (b >= 2 && b <= 4) return few;
+  return many;
+}
+function minLabel(session) {
+  const m = minutesOf(session);
+  return `≈${m} ${plural(m, "минута", "минуты", "минут")}`;
 }
 function kcalOf(session) {
   return Math.round(sessionTotals(session, currentWeight()).kcal);
@@ -78,23 +91,23 @@ function renderOnboarding() {
   const begin = (startDate) => askWeight(db.startWeight, (kg) => {
     root.hidden = true;
     commit({ ...db, startDate, startWeight: kg, weights: [{ date: today(), kg }] });
-  }, "Ваш вес сейчас?");
+  }, "Ваш вес сейчас?", "Прокрутите колёса до своего веса.");
   $("ob-today").addEventListener("click", () => begin(today()));
   $("ob-monday").addEventListener("click", () => {
     const d = new Date();
-    const shift = (8 - d.getDay()) % 7 || 7;
+    const shift = (8 - d.getDay()) % 7;
     begin(addDays(today(), shift));
   });
 }
 
 /* ---------- weight picker (two iOS wheels) ---------- */
-function askWeight(initial, onSave, title = "Записать вес") {
+function askWeight(initial, onSave, title = "Записать вес", hint = "Утром, до еды, раз в неделю.") {
   const kg = Math.floor(initial);
   const tenth = Math.round((initial - kg) * 10);
   const kgOpts = Array.from({ length: 111 }, (_, i) => 50 + i).map((v) => `<option value="${v}" ${v === kg ? "selected" : ""}>${v}</option>`).join("");
   const tOpts = Array.from({ length: 10 }, (_, i) => `<option value="${i}" ${i === tenth ? "selected" : ""}>${i}</option>`).join("");
   const body = openSheet(`<h3 class="sheet-title">${esc(title)}</h3>
-    <p class="muted">Утром, до еды, раз в неделю.</p>
+    <p class="muted">${esc(hint)}</p>
     <div class="wheels">
       <label for="w-kg" class="sr">Килограммы</label><select id="w-kg">${kgOpts}</select>
       <span class="wheel-sep">,</span>
@@ -127,19 +140,19 @@ function hardCard(plan) {
   const rounds = main.steps.filter((s) => s.phase === "work" && s.idx === 0).length;
   const altFull = plan.mainKind === "short"
     ? { kind: plan.type, label: WORKOUTS[plan.type].title, sub: "полная тренировка" }
-    : { kind: "short", label: `Короткая · ${minutesOf(planFor("short", plan.type, plan.params))} минут`, sub: "те же упражнения, 2 круга" };
+    : { kind: "short", label: `Короткая · ${minLabel(planFor("short", plan.type, plan.params))}`, sub: "те же упражнения, 2 круга" };
   return `<article class="card main">
     <button type="button" class="info-btn" data-info="${plan.mainKind}" data-type="${plan.type}" aria-label="Что в этой тренировке">?</button>
     <span class="eyebrow">Тренировка на сегодня</span>
     <h2>${esc(kindTitle(plan.mainKind, plan.type))}</h2>
-    <p class="meta">≈${minutesOf(main)} минут · <b>≈${kcalOf(main)} ккал</b> · ${exCount} упражнений · ${rounds} ${rounds === 4 ? "круга" : rounds >= 5 ? "кругов" : rounds === 1 ? "круг" : "круга"}</p>
+    <p class="meta">${minLabel(main)} · <b>≈${kcalOf(main)} ккал</b> · ${exCount} ${plural(exCount, "упражнение", "упражнения", "упражнений")} · ${rounds} ${plural(rounds, "круг", "круга", "кругов")}</p>
     <p class="meta faint">Уровень ${plan.params.level} из ${RULES.MAX_LEVEL}</p>
     ${thumbs(main)}
     <button type="button" class="btn primary huge" data-start="${plan.mainKind}" data-type="${plan.type}">Начать</button>
   </article>
   <div class="alts">
     <button type="button" class="btn alt" data-start="${altFull.kind}" data-type="${plan.type}"><b>${esc(altFull.label)}</b><small>${esc(altFull.sub)}</small></button>
-    ${plan.lightToday ? "" : `<button type="button" class="btn alt" data-start="light"><b>Спина и шея · ${minutesOf(planFor("light", null, plan.params))} минут</b><small>мягко, без прыжков</small></button>`}
+    ${plan.lightToday ? "" : `<button type="button" class="btn alt" data-start="light"><b>Спина и шея · ${minLabel(planFor("light", null, plan.params))}</b><small>мягко, без прыжков</small></button>`}
   </div>`;
 }
 
@@ -154,7 +167,7 @@ function lightCard(plan) {
     <button type="button" class="info-btn" data-info="light" aria-label="Что в этой тренировке">?</button>
     <span class="eyebrow">Сегодня восстановление</span>
     <h2>Спина и шея</h2>
-    <p class="meta">≈${minutesOf(s)} минут · <b>≈${kcalOf(s)} ккал</b> · мягко</p>
+    <p class="meta">${minLabel(s)} · <b>≈${kcalOf(s)} ккал</b> · мягко</p>
     ${thumbs(s)}
     <button type="button" class="btn primary huge" data-start="light">Начать</button>
   </article>
@@ -167,16 +180,17 @@ function doneCard(plan) {
   const tomorrowLabel = tomorrow.status === "hard" ? kindTitle(tomorrow.mainKind, tomorrow.type) : "Спина и шея";
   return `<article class="card main ok">
     <span class="eyebrow">Сегодня готово ✓</span>
-    <h2>${esc(kindTitle(s.kind, s.type))} · ${s.minutes} мин</h2>
+    <h2>${esc(kindTitle(s.kind, s.type))}</h2>
+    <p class="meta">${s.minutes} ${plural(s.minutes, "минута", "минуты", "минут")} · <b>${s.kcal} ккал</b></p>
     <p class="meta">Завтра: ${esc(tomorrowLabel)}</p>
   </article>
-  ${plan.lightToday ? "" : `<div class="alts"><button type="button" class="btn alt" data-start="light"><b>Ещё: Спина и шея · ${minutesOf(planFor("light", null, plan.params))} минут</b><small>мягко, для спины и осанки</small></button></div>`}`;
+  ${plan.lightToday ? "" : `<div class="alts"><button type="button" class="btn alt" data-start="light"><b>Ещё: Спина и шея · ${minLabel(planFor("light", null, plan.params))}</b><small>мягко, для спины и осанки</small></button></div>`}`;
 }
 
 function routineTile(kind, done, title, sub) {
   const action = done
     ? `<button type="button" class="btn small done" data-toggle="${kind}">Сделано ✓</button>`
-    : `<button type="button" class="btn small primary" data-start="${kind}">Начать</button>`;
+    : `<button type="button" class="btn small" data-start="${kind}">Начать</button>`;
   return `<div class="tile ${done ? "on" : ""}">
       <button type="button" class="tile-main" data-info="${kind}"><b>${esc(title)} <span class="q">?</span></b><span>${esc(sub)}</span></button>
       <div class="tile-actions">${action}</div>
@@ -189,11 +203,11 @@ function markTiles(week) {
   return `<h3 class="section-title">Отметить сегодня</h3>
   <div class="tiles">
     <div class="tile">
-      <button type="button" class="tile-main" data-walk><b>Ходьба ✎</b><span>${fmtKm(d.km)} из ${norm} км · нажмите, чтобы ввести</span></button>
+      <button type="button" class="tile-main" data-walk><b>Ходьба ›</b><span>${fmtKm(d.km)} из ${norm} км · ≈${Math.round(d.km * WALK_KCAL_PER_KG_KM * currentWeight())} ккал</span></button>
       <div class="tile-actions"><button type="button" class="btn small" data-km="1">+1 км</button><button type="button" class="btn small" data-km="2">+2 км</button></div>
     </div>
-    ${routineTile("morning", d.morning, "Утренний комплекс", `для спины после сна, ≈${minutesOf(planFor("morning", null, {}))} минут`)}
-    ${routineTile("chin", d.chin, "Шея и подбородок", `от второго подбородка, ≈${minutesOf(planFor("chin", null, {}))} минут`)}
+    ${routineTile("morning", d.morning, "Утренний комплекс", `для спины после сна · ${minLabel(planFor("morning", null, {}))} · ≈${kcalOf(planFor("morning", null, {}))} ккал`)}
+    ${routineTile("chin", d.chin, "Шея и подбородок", `от второго подбородка · ${minLabel(planFor("chin", null, {}))} · ≈${kcalOf(planFor("chin", null, {}))} ккал`)}
     <div class="tile ${d.cold ? "on" : ""}">
       <div class="tile-main"><b>Холодный душ</b><span>30–90 секунд в конце</span></div>
       <div class="tile-actions"><button type="button" class="btn small ${d.cold ? "done" : ""}" data-toggle="cold">${d.cold ? "Сделано ✓" : "Сделал"}</button></div>
@@ -216,16 +230,16 @@ function weightCard() {
 function progressBlock() {
   const total = db.sessions.filter((s) => !s.partial).length;
   const sorted = [...db.weights].sort((a, b) => (a.date < b.date ? -1 : 1));
-  if (sorted.length < 2) return `<p class="progress-line">Тренировок всего: <b>${total}</b></p>`;
-  const recent = sorted.slice(-3);
-  const avg = recent.reduce((s, w) => s + w.kg, 0) / recent.length;
-  const lost = db.startWeight - avg;
+  const count = total ? `Тренировок всего: <b>${total}</b>` : "";
+  if (sorted.length < 2) return count ? `<p class="progress-line">${count}</p>` : "";
+  const now = sorted[sorted.length - 1].kg;
+  const lost = db.startWeight - now;
   const pct = Math.max(0, Math.min(100, (lost / db.goalLoss) * 100));
   const label = lost >= 0 ? `−${fmt1(lost)} кг` : `+${fmt1(-lost)} кг`;
   return `<div class="progress">
     <div class="progress-num"><b>${label}</b> из ${db.goalLoss}</div>
     <div class="bar"><i style="width:${pct}%"></i></div>
-    <p class="progress-line">Тренировок всего: <b>${total}</b> · среднее последних взвешиваний ${fmt1(avg)} кг</p>
+    <p class="progress-line">Сейчас ${fmt1(now)} кг, старт ${fmt1(db.startWeight)} кг${count ? " · " + count : ""}</p>
   </div>`;
 }
 
@@ -253,7 +267,7 @@ function launch(kind, type, { early = false } = {}) {
   const t = today();
   const plan = nextSession(db, t);
   const params = plan.params;
-  if (early && db.startDate > t) db = { ...db, startDate: t };
+  if (early && db.startDate > t) commit({ ...db, startDate: t });
   const resetSeen = params.comeback === "long";
   const seen = resetSeen ? {} : db.seen;
   const session = planFor(kind, type, params);
@@ -269,10 +283,12 @@ function showPreview(keys, level, firstEver, go) {
   let i = 0;
   const slide = () => {
     const key = keys[i];
-    const safety = firstEver && i === 0 ? `<p class="stopline">Боль в суставе, в спине или головокружение: стоп. Лёгкое жжение в мышцах: норма.</p>` : "";
+    const safety = firstEver && i === 0 ? `<p class="homeline">Боль в суставе, в спине или головокружение: стоп. Лёгкое жжение в мышцах: норма.</p>` : "";
     const body = openSheet(`<p class="eyebrow">Смотри, как делать · ${i + 1} из ${keys.length}</p>${safety}${howToHtml(key, level)}
-      <button type="button" class="btn primary big" data-next>${i + 1 < keys.length ? "Понятно" : "Понятно, начать"}</button>
-      <button type="button" class="btn link" data-skip>Знаю, пропустить</button>`);
+      <div class="sheet-foot">
+        <button type="button" class="btn primary big" data-next>${i + 1 < keys.length ? "Понятно, дальше" : "Понятно, к тренировке"}</button>
+        <button type="button" class="btn link" data-skip>Знаю, пропустить</button>
+      </div>`);
     body.querySelector("[data-next]").addEventListener("click", () => {
       i += 1;
       if (i < keys.length) slide();
@@ -285,6 +301,7 @@ function showPreview(keys, level, firstEver, go) {
 
 function finishSession(result, params, resetSeen) {
   if (!result) { render(); return; }
+  if (result.skipped) { toast("Меньше минуты работы, тренировка не записана"); render(); return; }
   const { session, totals, feel, partial, level } = result;
   const now = new Date();
   const entry = {
@@ -324,6 +341,10 @@ function maybeHomeHint() {
   const standalone = window.navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
   if (standalone || db.homeHintShown) return;
   commit({ ...db, homeHintShown: true });
+  setTimeout(() => showHomeHint(), HOME_HINT_DELAY_MS);
+}
+
+function showHomeHint() {
   const body = openSheet(`<h3 class="sheet-title">Поставьте на экран «Домой»</h3>
     <ol class="cues"><li>Внизу Safari нажмите «Поделиться» (квадрат со стрелкой).</li><li>Выберите «На экран „Домой“».</li><li>Открывайте приложение с иконки: так записи не пропадут.</li></ol>
     <button type="button" class="btn primary big" data-close>Понятно</button>`);
@@ -336,18 +357,30 @@ function otherSheet() {
   const plan = nextSession(db, t);
   const dh = daysSinceHard(db.sessions, t);
   const p = plan.params;
-  const item = (kind, type, label, sub) => `<button type="button" class="list-item" data-start="${kind}" ${type ? `data-type="${type}"` : ""}><b>${esc(label)}</b><small>${esc(sub)}</small></button>`;
-  const hint = dh === 1 ? `<p class="banner">Вчера уже была силовая. Лучше спина и шея.</p>` : "";
+  const recommended = plan.status === "hard" ? plan.mainKind : plan.status === "light" ? "light" : null;
+  const item = (kind, type, label, sub) => {
+    const session = planFor(kind, type, p);
+    const rec = kind === recommended && (kind !== plan.mainKind || type === plan.type) ? `<span class="rec">по плану · </span>` : "";
+    return `<button type="button" class="list-item" data-start="${kind}" ${type ? `data-type="${type}"` : ""}><b>${esc(label)}</b><small>${rec}${minLabel(session)} · ≈${kcalOf(session)} ккал · ${esc(sub)}</small></button>`;
+  };
+  const hint = dh === 1 ? `<p class="banner">Вчера уже была силовая. Сегодня лучше «Спина и шея».</p>` : "";
   const body = openSheet(`<h3 class="sheet-title">Другая тренировка</h3>${hint}
+    <p class="list-group">Силовые</p>
     <div class="list">
-      ${["A", "B", "C"].map((x) => item(x, x, WORKOUTS[x].title, `≈${minutesOf(planFor(x, x, p))} минут`)).join("")}
-      ${item("short", plan.type, `Короткая: ${WORKOUTS[plan.type].title.toLowerCase()}`, `≈${minutesOf(planFor("short", plan.type, p))} минут, 2 круга`)}
-      ${item("light", null, "Спина и шея", `≈${minutesOf(planFor("light", null, p))} минут, мягко`)}
-      ${item("morning", null, "Утренний комплекс", `≈${minutesOf(planFor("morning", null, p))} минут для спины, с таймером`)}
-      ${item("chin", null, "Шея и подбородок", `≈${minutesOf(planFor("chin", null, p))} минут, от второго подбородка`)}
-      ${item("stand", null, "Стоя, без пола", `≈${minutesOf(planFor("stand", null, p))} минут: хлопки, колени, глубокий присед`)}
-      <button type="button" class="list-item" data-walk><b>Прогулка</b><small>отметить километры</small></button>
-    </div>`);
+      ${item("A", "A", WORKOUTS.A.title, "приседания, отжимания, мост")}
+      ${item("B", "B", WORKOUTS.B.title, "выпады, пайк, супермен")}
+      ${item("C", "C", WORKOUTS.C.title, "бёрпи, выпады, скалолаз")}
+      ${item("short", plan.type, kindTitle("short", plan.type), "2 круга, когда мало времени")}
+    </div>
+    <p class="list-group">Мягкие</p>
+    <div class="list">
+      ${item("light", null, "Спина и шея", "мягко, без прыжков")}
+      ${item("morning", null, "Утренний комплекс", "для спины после сна")}
+      ${item("chin", null, "Шея и подбородок", "от второго подбородка")}
+      ${item("stand", null, "Стоя, без пола", "хлопки, колени, глубокий присед")}
+    </div>
+    <p class="list-group">Без таймера</p>
+    <div class="list"><button type="button" class="list-item" data-walk><b>Прогулка</b><small>отметить километры или шаги</small></button></div>`);
   body.addEventListener("click", onTodayClick);
 }
 
@@ -363,7 +396,7 @@ const INFO_INTRO = {
   morning: "Делайте сразу после сна, можно прямо на кровати или на коврике. Снимает утреннюю скованность в спине и шее.",
   light: "Мягкая тренировка для спины, шеи и осанки. Подходит на следующий день после силовой.",
   stand: "Всё стоя, без пола и прыжков: пресс, ноги и пульс.",
-  chin: "Жир под подбородком уходит только вместе с общим весом. Эти упражнения укрепляют шею и возвращают голову на место, поэтому подбородок становится заметно меньше уже через 3–4 недели. Лучше каждый день."
+  chin: "Жир под подбородком уходит только вместе с общим весом, заметно после −5…8 кг. Эти упражнения укрепляют шею и возвращают голову на место: осанка головы меняется уже за 3–4 недели, и подбородок меньше «складывается». Лучше каждый день."
 };
 
 /** «?»: what is inside a session, what each exercise gives and how many calories. */
@@ -380,12 +413,14 @@ function infoSheet(kind, type) {
   const intro = INFO_INTRO[kind] ? `<p class="muted">${esc(INFO_INTRO[kind])}</p>` : "";
   const extra = kind === "morning" || kind === "chin" ? `<button type="button" class="btn big" data-toggle="${kind}">${dayOf(today())[kind] ? "Снять отметку" : "Сделал без таймера"}</button>` : "";
   const body = openSheet(`<h3 class="sheet-title">${esc(kindTitle(kind, type))}</h3>
-    <p class="info-sum">≈${Math.round(totals.seconds / 60)} минут · ≈${Math.round(totals.kcal)} ккал за всю тренировку</p>
+    <p class="info-sum">${minLabel(session)} · ≈${Math.round(totals.kcal)} ккал за всю тренировку</p>
     ${intro}
     <p class="muted small">Нажмите на упражнение: фото, техника и видео.</p>
     <div class="info-list">${rows}</div>
-    <button type="button" class="btn primary big" data-start="${kind}" ${type ? `data-type="${type}"` : ""}>Начать</button>
-    ${extra}
+    <div class="sheet-foot">
+      <button type="button" class="btn primary big" data-start="${kind}" ${type ? `data-type="${type}"` : ""}>Начать</button>
+      ${extra}
+    </div>
     <p class="fine">Калории примерные, для вашего веса ${fmt1(weight)} кг.</p>`);
   body.addEventListener("click", (e) => {
     const collapse = e.target.closest("[data-collapse]");
@@ -404,16 +439,17 @@ function walkSheet(date = today()) {
   let unit = "km";
   const body = openSheet(`<h3 class="sheet-title">Ходьба ${isToday ? "сегодня" : "· " + esc(dateTitle(date))}</h3>
     <p class="muted">Уже записано: <b>${fmtKm(dayOf(date).km)} км</b></p>
+    <div class="row3"><button type="button" class="btn big" data-km="1">+1 км</button><button type="button" class="btn big" data-km="2">+2 км</button><button type="button" class="btn big" data-km="3">+3 км</button></div>
+    <p class="list-group">Или введите точно</p>
     <div class="seg" role="group" aria-label="Единицы">
       <button type="button" class="on" data-unit="km">Километры</button>
       <button type="button" data-unit="steps">Шаги</button>
     </div>
     <label class="sr" for="walk-input">Сколько прошли</label>
     <input id="walk-input" class="num-input" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" placeholder="например, 3,5">
-    <p class="muted" id="walk-hint">Шаги можно взять из приложения «Здоровье». 1 км ≈ ${STEPS_PER_KM} шагов.</p>
+    <p class="muted" id="walk-hint">Шаги можно взять из приложения «Здоровье». 1&nbsp;км&nbsp;≈&nbsp;${STEPS_PER_KM}&nbsp;шагов.</p>
     <button type="button" class="btn primary big" data-add>Добавить к записанному</button>
-    <button type="button" class="btn big" data-set>Это итог за день</button>
-    <div class="row3"><button type="button" class="btn" data-km="1">+1 км</button><button type="button" class="btn" data-km="2">+2 км</button><button type="button" class="btn" data-km="3">+3 км</button></div>
+    <button type="button" class="btn big" data-set>Заменить: это всё за день</button>
     <button type="button" class="btn link" data-reset>Обнулить ходьбу за этот день</button>`);
   const input = body.querySelector("#walk-input");
   const hint = body.querySelector("#walk-hint");
@@ -426,11 +462,15 @@ function walkSheet(date = today()) {
   const apply = (mode) => {
     const km = parseWalk(input.value, unit);
     if (km === null) {
-      hint.textContent = unit === "steps" ? "Введите число шагов, например 8432." : "Введите километры, например 3,5.";
+      const raw = Number(String(input.value).replace(/\s/g, "").replace(",", "."));
+      const tooMuch = Number.isFinite(raw) && (unit === "steps" ? raw / STEPS_PER_KM : raw) > MAX_KM_PER_DAY;
+      hint.textContent = tooMuch ? `Слишком много: больше ${MAX_KM_PER_DAY} км за день не бывает.`
+        : unit === "steps" ? "Введите число шагов, например 8432." : "Введите километры, например 3,5.";
       hint.classList.add("error");
       input.focus();
       return;
     }
+    if (km === 0) { hint.textContent = "Это меньше 0,1 км, записывать нечего."; hint.classList.add("error"); return; }
     const total = mode === "add" ? dayOf(date).km + km : km;
     setWalk(date, total);
     closeSheet();
@@ -453,7 +493,6 @@ function walkSheet(date = today()) {
     if (el.dataset.km) { setWalk(date, dayOf(date).km + Number(el.dataset.km)); closeSheet(); }
     if (el.hasAttribute("data-reset")) { setWalk(date, 0); closeSheet(); }
   });
-  input.focus();
 }
 
 function setDay(date, patch) {
@@ -561,7 +600,7 @@ function dayEditSheet(date) {
   const body = openSheet(`<h3 class="sheet-title">${esc(dateTitle(date))}</h3>
     <div class="list">${ss.map((s) => `<div class="list-item static"><b>${esc(kindTitle(s.kind, s.type))}</b><small>${s.time} · ${s.minutes} мин · ${s.kcal} ккал</small><button type="button" class="btn small danger" data-del="${esc(s.id)}">Удалить</button></div>`).join("") || `<p class="muted">Тренировок не было.</p>`}</div>
     <button type="button" class="btn big" data-walk-day>Ходьба: ${fmtKm(d.km)} км · изменить</button>
-    <div class="row"><button type="button" class="btn ${d.morning ? "done" : ""}" data-t="morning">Утро ${d.morning ? "✓" : ""}</button><button type="button" class="btn ${d.cold ? "done" : ""}" data-t="cold">Холод ${d.cold ? "✓" : ""}</button></div>`);
+    <div class="row"><button type="button" class="btn ${d.morning ? "done" : ""}" data-t="morning">Утро ${d.morning ? "✓" : ""}</button><button type="button" class="btn ${d.chin ? "done" : ""}" data-t="chin">Подбородок ${d.chin ? "✓" : ""}</button><button type="button" class="btn ${d.cold ? "done" : ""}" data-t="cold">Холод ${d.cold ? "✓" : ""}</button></div>`);
   body.addEventListener("click", (e) => {
     const el = e.target.closest("button");
     if (!el) return;
@@ -594,15 +633,32 @@ async function shareBackup() {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
+/** Restoring replaces everything, so show what is in the file and ask first. */
 async function restoreBackup(file) {
+  let restored;
   try {
-    const restored = await importFile(file);
-    commit(restored);
-    toast(`Восстановлено: ${restored.sessions.length} тренировок`);
+    restored = await importFile(file);
   } catch (err) {
     console.error("restore failed", err);
     toast("Это не файл резервной копии «Минус 15».");
+    return;
   }
+  if (!restored.startDate) { toast("В файле нет данных программы, восстанавливать нечего."); return; }
+  const n = restored.sessions.length;
+  const w = restored.weights.length;
+  const body = openSheet(`<h3 class="sheet-title">Заменить записи данными из файла?</h3>
+    <p>В файле: ${n} ${plural(n, "тренировка", "тренировки", "тренировок")}, ${w} ${plural(w, "взвешивание", "взвешивания", "взвешиваний")}, старт ${esc(dateTitle(restored.startDate))}.</p>
+    <p class="muted">Сейчас в телефоне: ${db.sessions.length} ${plural(db.sessions.length, "тренировка", "тренировки", "тренировок")}. Они будут заменены, отменить нельзя.</p>
+    <div class="sheet-foot">
+      <button type="button" class="btn primary big" data-ok>Заменить</button>
+      <button type="button" class="btn big" data-cancel>Отмена</button>
+    </div>`);
+  body.querySelector("[data-cancel]").addEventListener("click", closeSheet);
+  body.querySelector("[data-ok]").addEventListener("click", () => {
+    closeSheet();
+    commit(restored);
+    toast(`Восстановлено: ${n} ${plural(n, "тренировка", "тренировки", "тренировок")}`);
+  });
 }
 
 function bindHelp() {

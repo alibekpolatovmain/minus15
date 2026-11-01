@@ -1,5 +1,5 @@
 // Offline cache for the home-screen app. Bump CACHE_VERSION on every release.
-const CACHE_VERSION = "minus15-v5";
+const CACHE_VERSION = "minus15-v6";
 const PRECACHE = [
   "./",
   "./index.html",
