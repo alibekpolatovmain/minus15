@@ -2,7 +2,7 @@
 import { EXERCISES, FIGURES, FIGURE_VIEWBOX, YT } from "./data.js";
 import { tierOf } from "./plan.js";
 
-export const IMG = (id, n) => `img/${id}_${n}.jpg`;
+export const IMG = (id, n, ext = "jpg") => `img/${id}_${n}.${ext}`;
 
 export function esc(text) {
   return String(text).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
@@ -20,12 +20,16 @@ export function seenKey(key, level) {
 
 export function figureSvg(name, frame) {
   const f = FIGURES[name][frame];
-  const dash = f.dash ? `<path d="M150 20 L150 180" stroke-dasharray="6 8" stroke-width="2" opacity="0.4"/>` : "";
-  // Profile head (skull, nose, chin) for neck exercises; plain circle otherwise.
-  const head = f.head
-    ? `<g transform="translate(${f.head[0]} ${f.head[1]}) rotate(${f.head[2]})"><circle r="24"/><path d="M21 -8 L40 6 L21 11 M19 15 Q12 32 -8 26"/></g>`
-    : `<circle cx="${f.c[0]}" cy="${f.c[1]}" r="13"/>`;
-  return `<svg class="fig" viewBox="${FIGURE_VIEWBOX[name] || "0 0 300 190"}" preserveAspectRatio="xMidYMid meet" role="img" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">${dash}${head}<path d="${f.p}"/></g></svg>`;
+  const helpers = [
+    f.floor ? `<path d="M20 178 L280 178" stroke-width="4" opacity="0.45"/>` : "",
+    f.mat ? `<rect x="96" y="6" width="108" height="182" rx="12" stroke-width="3" opacity="0.3"/>` : "",
+    f.dashX ? `<path d="M${f.dashX} 20 L${f.dashX} 190" stroke-dasharray="6 8" stroke-width="2.5" opacity="0.45"/>` : "",
+    f.arrow ? `<path d="${f.arrow}" stroke-width="4" opacity="0.65"/>` : ""
+  ].join("");
+  const head = f.headP
+    ? `<g transform="translate(${f.headP[0]} ${f.headP[1]}) rotate(${f.headP[2]})" fill="currentColor" stroke="none"><circle r="24"/><path d="M19 -9 L38 5 L19 12 Z"/></g>`
+    : `<circle cx="${f.head[0]}" cy="${f.head[1]}" r="15" fill="currentColor" stroke="none"/>`;
+  return `<svg class="fig" viewBox="${FIGURE_VIEWBOX[name] || "0 0 300 190"}" preserveAspectRatio="xMidYMid meet" role="img" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${helpers}<path d="${f.p}" stroke-width="13"/>${head}</g></svg>`;
 }
 
 /** One frame of an exercise: photo, stick figure or the breathing circle. */
@@ -34,7 +38,7 @@ export function frameHtml(key, frame = 0) {
   if (ex.breathe) return `<div class="breath" aria-label="Вдох 4 секунды, выдох 6"><i></i></div>`;
   if (ex.figure) return figureSvg(ex.figure, Math.min(frame, 1));
   const n = ex.frames === 2 ? Math.min(frame, 1) : ex.frameIndex ?? 0;
-  return `<img src="${IMG(ex.img, n)}" alt="${esc(ex.name)}" draggable="false">`;
+  return `<img src="${IMG(ex.img, n, ex.ext)}" alt="${esc(ex.name)}" draggable="false">`;
 }
 
 /** Start/finish pair with captions (or a single frame). */

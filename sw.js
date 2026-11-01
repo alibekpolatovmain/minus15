@@ -1,5 +1,5 @@
 // Offline cache for the home-screen app. Bump CACHE_VERSION on every release.
-const CACHE_VERSION = "minus15-v6";
+const CACHE_VERSION = "minus15-v7";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -21,6 +21,8 @@ const PRECACHE = [
   "./img/Bodyweight_Squat_1.jpg",
   "./img/Bodyweight_Walking_Lunge_0.jpg",
   "./img/Bodyweight_Walking_Lunge_1.jpg",
+  "./img/Burpee_0.jpg",
+  "./img/Burpee_1.jpg",
   "./img/Butt_Lift_Bridge_0.jpg",
   "./img/Butt_Lift_Bridge_1.jpg",
   "./img/Calf_Stretch_Hands_Against_Wall_0.jpg",
@@ -31,7 +33,11 @@ const PRECACHE = [
   "./img/Childs_Pose_1.jpg",
   "./img/Dead_Bug_0.jpg",
   "./img/Dead_Bug_1.jpg",
+  "./img/Floor_Pushup_0.png",
+  "./img/Floor_Pushup_1.png",
   "./img/Hindu_Pushups_0.jpg",
+  "./img/Home_Squat_0.jpg",
+  "./img/Home_Squat_1.jpg",
   "./img/Hug_Knees_To_Chest_0.jpg",
   "./img/Hug_Knees_To_Chest_1.jpg",
   "./img/Incline_Push-Up_0.jpg",
@@ -46,6 +52,8 @@ const PRECACHE = [
   "./img/Mountain_Climbers_1.jpg",
   "./img/One_Knee_To_Chest_0.jpg",
   "./img/One_Knee_To_Chest_1.jpg",
+  "./img/Pike_0.jpg",
+  "./img/Pike_1.jpg",
   "./img/Plank_0.jpg",
   "./img/Plank_1.jpg",
   "./img/Side_Bridge_0.jpg",

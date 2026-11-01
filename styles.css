@@ -335,3 +335,4 @@ body:has(#sheet:not([hidden])) .toast { bottom: auto; top: calc(env(safe-area-in
 .now-weight { color: var(--muted); font-size: 15px; }
 .settings-row { background: var(--card); border-radius: 16px; padding: 4px 16px; }
 @media (prefers-reduced-motion: reduce) { .sheet-panel { transition: none; } .btn:active { transform: none; } }
+.pair img[src$=".png"], .thumbs img[src$=".png"], .info-thumb img[src$=".png"] { object-fit: contain; background: #FFFFFF; }
