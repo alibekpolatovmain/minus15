@@ -1,5 +1,5 @@
 // Offline cache for the home-screen app. Bump CACHE_VERSION on every release.
-const CACHE_VERSION = "minus15-v2";
+const CACHE_VERSION = "minus15-v3";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -36,8 +36,6 @@ const PRECACHE = [
   "./img/Hug_Knees_To_Chest_1.jpg",
   "./img/Incline_Push-Up_0.jpg",
   "./img/Incline_Push-Up_1.jpg",
-  "./img/Inverted_Row_0.jpg",
-  "./img/Inverted_Row_1.jpg",
   "./img/Isometric_Neck_Exercise_-_Front_And_Back_0.jpg",
   "./img/Isometric_Neck_Exercise_-_Front_And_Back_1.jpg",
   "./img/Isometric_Neck_Exercise_-_Sides_0.jpg",
@@ -56,8 +54,6 @@ const PRECACHE = [
   "./img/Side_Neck_Stretch_1.jpg",
   "./img/Standing_Dumbbell_Calf_Raise_0.jpg",
   "./img/Standing_Dumbbell_Calf_Raise_1.jpg",
-  "./img/Step-up_with_Knee_Raise_0.jpg",
-  "./img/Step-up_with_Knee_Raise_1.jpg",
   "./img/Superman_0.jpg",
   "./img/Superman_1.jpg",
 ];

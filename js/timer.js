@@ -8,6 +8,8 @@ const FLIP_MS = 1500;
 const BACK_DOUBLE_MS = 2000;
 const MIN_WORK_TO_RECORD_S = 60;
 const PHASE = { warm: "РАЗМИНКА", work: "РАБОТА", rest: "ОТДЫХ", cool: "ЗАМИНКА", flow: "СПИНА И ШЕЯ" };
+const SOFT_KINDS = new Set(["light", "stand", "morning", "chin"]);
+const FLOW_LABEL = { morning: "УТРО", chin: "ПОДБОРОДОК", light: "СПИНА И ШЕЯ" };
 const NUM_WORDS = ["", "один", "два", "три", "четыре", "пять", "шесть"];
 
 let run = null;
@@ -83,7 +85,7 @@ function render() {
   const root = $("timer");
   root.dataset.phase = step.phase;
   root.classList.toggle("paused", run.paused);
-  $("t-phase").textContent = PHASE[step.phase];
+  $("t-phase").textContent = step.phase === "flow" ? FLOW_LABEL[run.session.kind] || PHASE.flow : PHASE[step.phase];
   $("t-progress").innerHTML = `${esc(progressText(step))}${segmentsHtml(step)}`;
   const isRest = step.phase === "rest";
   $("t-name").textContent = isRest ? `Дальше: ${stepName({ ...step, label: null })}` : stepName(step);
@@ -101,6 +103,10 @@ function updateClock() {
   const total = Math.max(0, Math.ceil(left / 1000));
   $("t-clock").textContent = `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
   $("t-bar").style.width = `${Math.min(100, Math.max(0, 100 - (left / (step.sec * 1000)) * 100))}%`;
+  const spent = run.steps.map((s, i) => (i === run.i ? (run.spent[i] || 0) + (s.sec * 1000 - Math.max(0, left)) : run.spent[i] || 0));
+  const live = sessionTotals(run.session, run.weight, spent);
+  $("t-kcal").textContent = `${Math.round(live.kcal)}`;
+  $("t-elapsed").textContent = `${Math.floor(live.seconds / 60)}:${String(Math.floor(live.seconds % 60)).padStart(2, "0")} из ${Math.round(run.totalSec / 60)} мин`;
 }
 
 /* ---------- engine ---------- */
@@ -224,9 +230,9 @@ function finish() {
   $("t-done").hidden = false;
   if (totals.workSeconds < MIN_WORK_TO_RECORD_S) { end(null); return; }
   const partial = totals.ratio < RULES.PARTIAL_RATIO;
-  const asksFeel = !partial && run.session.kind !== "light" && run.session.kind !== "stand";
+  const asksFeel = !partial && !SOFT_KINDS.has(run.session.kind);
   $("d-min").textContent = Math.round(totals.seconds / 60);
-  $("d-kcal").textContent = `≈ ${Math.round(totals.kcal)} ккал`;
+  $("d-kcal").textContent = `${Math.round(totals.kcal)}`;
   $("d-title").textContent = partial ? "Записать как неполную?" : "Готово!";
   $("d-feel").hidden = !asksFeel;
   $("d-ask").hidden = !asksFeel;
@@ -256,7 +262,8 @@ function record(feel) {
 export function startTimer(session, { level, weight, sound, onEnd }) {
   run = {
     session, steps: session.steps, level, weight, sound, onEnd,
-    i: 0, spent: [], paused: false, finished: false, audio: sound ? makeAudio() : null
+    i: 0, spent: [], paused: false, finished: false, audio: sound ? makeAudio() : null,
+    totalSec: session.steps.reduce((sum, s) => sum + s.sec, 0)
   };
   keepAwake();
   $("t-run").hidden = false;

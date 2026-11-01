@@ -231,7 +231,7 @@ details.ex[open] { padding-bottom: 12px; }
 .segs i.cur { background: #FFFFFF; }
 .t-close { width: 48px; height: 48px; border-radius: 24px; border: 0; background: rgba(255, 255, 255, 0.18); color: #FFFFFF; font-size: 20px; cursor: pointer; }
 .timer[data-phase="done"] .t-close, .timer[data-phase="done"] .t-phase, .timer[data-phase="done"] .t-progress { visibility: hidden; }
-.t-run { display: grid; grid-template-rows: auto auto auto auto minmax(0, 1fr) auto auto; justify-items: center; text-align: center; gap: 6px; min-height: 0; position: relative; }
+.t-run { display: grid; grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto auto; justify-items: center; text-align: center; gap: 6px; min-height: 0; position: relative; }
 .t-clock { font-size: min(36vw, 22vh); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; background: none; border: 0; color: inherit; cursor: pointer; padding: 0; }
 .t-bar { width: 100%; max-width: 560px; height: 12px; border-radius: 6px; background: rgba(255, 255, 255, 0.25); overflow: hidden; }
 .t-bar i { display: block; height: 100%; width: 0; background: #FFFFFF; }
@@ -252,8 +252,11 @@ details.ex[open] { padding-bottom: 12px; }
 .t-paused { position: absolute; inset: 30% 0 auto; display: grid; gap: 10px; padding: 16px; background: var(--bg); color: var(--ink); border-radius: 20px; max-width: 420px; margin: 0 auto; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); }
 .t-done { display: grid; align-content: center; justify-items: center; gap: 12px; text-align: center; max-width: 520px; margin: 0 auto; width: 100%; }
 .t-done h2 { font-size: 34px; font-weight: 800; }
-.d-min { font-size: 22px; }
-.d-min b { font-size: 64px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.d-nums { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+.d-nums p { background: var(--card); border-radius: 18px; padding: 14px 8px; display: grid; gap: 2px; }
+.d-nums b { font-size: 52px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.d-nums span { font-size: 15px; color: var(--muted); }
+.d-nums p:last-child b { color: var(--warn); }
 .d-ask { font-size: 20px; font-weight: 600; margin-top: 8px; }
 .feel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
 .feel button { min-height: 72px; border-radius: 18px; border: 0; background: var(--card); color: var(--ink); font-size: 17px; font-weight: 700; cursor: pointer; box-shadow: inset 0 0 0 1px var(--line); }
@@ -264,3 +267,40 @@ details.ex[open] { padding-bottom: 12px; }
   .t-media img, .t-media svg { max-height: 26vh; }
   .t-clock { font-size: min(30vw, 18vh); }
 }
+
+/* live stats in timer */
+.t-stats { width: 100%; max-width: 560px; display: flex; justify-content: space-between; gap: 10px; font-size: 16px; font-variant-numeric: tabular-nums; opacity: 0.95; }
+.t-stats b { font-size: 20px; }
+
+/* «?» button and workout info sheet */
+.card.main { position: relative; }
+.info-btn { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; border-radius: 22px; border: 0; background: var(--bg); color: var(--ink); font-size: 20px; font-weight: 800; cursor: pointer; }
+.card.soft .info-btn { background: var(--card); }
+.info-sum { font-size: 17px; font-weight: 600; }
+.small { font-size: 14px; }
+.info-list { display: grid; gap: 8px; }
+.info-row { background: var(--card); border-radius: 14px; }
+.info-row summary { list-style: none; display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; min-height: 72px; cursor: pointer; }
+.info-row summary::-webkit-details-marker { display: none; }
+.info-thumb { width: 56px; height: 56px; border-radius: 10px; overflow: hidden; background: #FFFFFF; color: #111418; display: grid; place-items: center; }
+.info-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.info-thumb svg { width: 100%; height: 100%; }
+.info-thumb .breath { width: 80%; }
+.info-text { display: grid; gap: 2px; min-width: 0; }
+.info-text b { font-size: 16px; }
+.info-text small { font-size: 13px; color: var(--muted); line-height: 1.35; }
+.info-kcal { display: grid; justify-items: end; line-height: 1.1; }
+.info-kcal b { font-size: 20px; color: var(--warn); font-variant-numeric: tabular-nums; }
+.info-kcal small { font-size: 11px; color: var(--muted); }
+.info-more { display: grid; gap: 10px; padding: 0 12px 14px; }
+.gives { font-size: 16px; color: var(--muted); }
+.meta b { font-weight: 700; color: var(--warn); }
+
+/* embedded video */
+.yt-play { width: 100%; min-height: 52px; border: 0; border-radius: 14px; background: #FF0033; color: #FFFFFF; font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; }
+.yt-icon { width: 0; height: 0; border-left: 14px solid currentColor; border-top: 9px solid transparent; border-bottom: 9px solid transparent; }
+.yt-frame { width: 100%; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; background: #000000; }
+.yt-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+.yt-link { font-size: 14px; color: var(--muted); text-align: center; }
+.tile-main b .q { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 11px; background: var(--bg); color: var(--muted); font-size: 13px; font-weight: 800; vertical-align: 1px; margin-left: 4px; }
+.tile-main span.q { color: var(--muted); }

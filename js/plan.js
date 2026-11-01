@@ -1,5 +1,5 @@
 // Scheduling rules: which session to propose today. Pure functions, no DOM, no storage.
-import { LEVELS, WORKOUTS, WARMUP, COOLDOWN, LIGHT_FLOW, STAND_WARM, STAND_LIST, STAND_SHAPE, MET } from "./data.js";
+import { LEVELS, WORKOUTS, WARMUP, COOLDOWN, LIGHT_FLOW, MORNING_FLOW, CHIN_FLOW, STAND_WARM, STAND_LIST, STAND_SHAPE, MET } from "./data.js";
 
 export const RULES = {
   EASY_WEEKS: 2,          // weeks 1–2 use the low weekly cap
@@ -169,6 +169,8 @@ function circuitSteps(list, work, rest, rounds) {
 
 export function buildSession(kind, type, level, rounds) {
   if (kind === "light") return { kind, type: null, level, steps: flowSteps(LIGHT_FLOW, "flow") };
+  if (kind === "chin") return { kind, type: null, level, steps: flowSteps(CHIN_FLOW, "flow") };
+  if (kind === "morning") return { kind, type: null, level, steps: flowSteps(MORNING_FLOW, "flow") };
   if (kind === "stand") {
     const steps = [...flowSteps(STAND_WARM, "warm"), ...circuitSteps(STAND_LIST, STAND_SHAPE.work, STAND_SHAPE.rest, STAND_SHAPE.rounds), ...flowSteps([["breathe", 60]], "cool")];
     return { kind, type: null, level, steps };
@@ -202,6 +204,6 @@ export function sessionTotals(session, weight, spentMs = null) {
 }
 
 export function sessionExercises(session) {
-  const phases = session.kind === "light" ? ["flow"] : ["work"];
+  const phases = ["light", "morning", "chin"].includes(session.kind) ? ["flow"] : ["work"];
   return [...new Set(session.steps.filter((s) => phases.includes(s.phase)).map((s) => s.ex))];
 }

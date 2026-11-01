@@ -63,7 +63,7 @@
           <tr><td><a href="https://www.youtube.com/watch?v=KDnojHoz4hE" target="_blank" rel="noopener">Отжимания Тайсона</a></td><td>≈12</td><td>С 4-го уровня вместо отжиманий</td></tr>
           <tr><td><a href="https://www.youtube.com/watch?v=Hn5PZ_pfyoM" target="_blank" rel="noopener">Индийские отжимания</a></td><td>≈12</td><td>С 3-го уровня</td></tr>
           <tr><td>Скалолаз</td><td>≈11</td><td>Уже в программе</td></tr>
-          <tr><td>Приседания с рюкзаком</td><td>≈9</td><td>С 3-го уровня</td></tr>
+          <tr><td>Приседания с паузой внизу</td><td>≈9</td><td>С 3-го уровня</td></tr>
           <tr><td>Бёрпи с прыжком, выпрыгивания</td><td>≈13–14</td><td>Только после −8 кг</td></tr>
         </tbody>
       </table>
@@ -82,7 +82,7 @@
 
     <details class="help">
       <summary>Шея и второй подбородок</summary>
-      <p>Жир под подбородком уходит только вместе с общим весом, обычно заметно после −5…8 кг. Быстрее помогают осанка головы (втягивание подбородка, изометрия шеи каждый день) и меньше соли и алкоголя вечером: утренний отёк лица уменьшается.</p>
+      <p>Жир под подбородком уходит только вместе с общим весом, обычно заметно после −5…8 кг. Быстрее помогают три вещи: комплекс «Шея и подбородок» каждый день (6 минут, кнопка на экране «Сегодня»), прямая осанка головы и меньше соли и алкоголя вечером, тогда утренний отёк лица уменьшается.</p>
     </details>
 
     <details class="help">
@@ -147,17 +147,18 @@
   <div class="t-run" id="t-run">
     <button type="button" class="t-clock" id="t-clock" aria-label="Пауза">0:00</button>
     <div class="t-bar"><i id="t-bar"></i></div>
+    <p class="t-stats"><span>Сожжено ≈ <b id="t-kcal">0</b> ккал</span><span id="t-elapsed"></span></p>
     <h2 class="t-name" id="t-name"></h2>
     <p class="t-cue" id="t-cue"></p>
     <div class="t-media" id="t-media"></div>
     <p class="t-next" id="t-next"></p>
     <div class="t-paused" id="t-paused" hidden>
       <button type="button" class="btn primary big" data-act="resume">Продолжить</button>
-      <button type="button" class="btn big" data-act="how">Как делать?</button>
+      <button type="button" class="btn big" data-act="how">▶ Видео и техника</button>
       <button type="button" class="btn link" data-act="stop">Закончить тренировку</button>
     </div>
     <div class="t-controls">
-      <button type="button" class="t-how" id="t-how">Как делать?</button>
+      <button type="button" class="t-how" id="t-how">▶ Видео и техника</button>
       <div class="t-row">
         <button type="button" class="t-side" id="t-back" aria-label="Назад">←</button>
         <button type="button" class="t-main" id="t-pause">Пауза</button>
@@ -167,8 +168,7 @@
   </div>
   <div class="t-done" id="t-done" hidden>
     <h2 id="d-title">Готово!</h2>
-    <p class="d-min"><b id="d-min">0</b> минут</p>
-    <p class="muted" id="d-kcal"></p>
+    <div class="d-nums"><p><b id="d-min">0</b><span>минут</span></p><p><b id="d-kcal">0</b><span>ккал сожжено</span></p></div>
     <p class="d-ask" id="d-ask">Как было?</p>
     <div class="feel" id="d-feel">
       <button type="button" data-feel="easy">Легко</button>

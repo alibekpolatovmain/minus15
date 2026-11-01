@@ -3,7 +3,7 @@ import { RULES } from "./plan.js";
 
 const KEY = "minus15:db:v1";
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const KINDS = new Set(["A", "B", "C", "short", "light", "stand"]);
+const KINDS = new Set(["A", "B", "C", "short", "light", "stand", "morning", "chin"]);
 const FEELS = new Set(["easy", "ok", "hard", null]);
 
 export const DEFAULTS = Object.freeze({
@@ -46,7 +46,7 @@ function cleanSession(s) {
 }
 
 function cleanDay(d) {
-  return { km: num(d?.km, 0, 80, 0), morning: d?.morning === true, cold: d?.cold === true };
+  return { km: num(d?.km, 0, 80, 0), morning: d?.morning === true, cold: d?.cold === true, chin: d?.chin === true };
 }
 
 export function validate(raw) {

@@ -5,18 +5,20 @@ import {
   daysSinceHard, isHard, hardInLast7, weekIndex, RULES
 } from "./plan.js";
 import { load, save, exportFile, importFile } from "./store.js";
-import { esc, exName, seenKey, frameHtml, howToHtml, openSheet, closeSheet, toast, fmt1, fmtKm } from "./ui.js";
+import { esc, exName, seenKey, frameHtml, howToHtml, openSheet, closeSheet, toast, fmt1, fmtKm, kcalPerMin, bindVideos } from "./ui.js";
 import { startTimer, bindTimer } from "./timer.js";
 
 const STEPS_PER_KM = 1350;
 const MAX_KM_PER_DAY = 60;
+const WALK_KCAL_PER_KG_KM = 0.5;
 const SEEN_ENOUGH = 2;
 const WEIGHT_EVERY_DAYS = 7;
 const WALK_NORM = [[2, 4], [4, 5], [8, 6], [Infinity, 7]];
 const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
 const WEEKDAY_SHORT = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
 const WEEKDAYS = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
-const KIND_TITLE = { light: "Спина и шея", stand: "Стоя, без пола" };
+const KIND_TITLE = { light: "Спина и шея", stand: "Стоя, без пола", morning: "Утренний комплекс", chin: "Шея и подбородок" };
+const SOFT_KINDS = new Set(["light", "stand", "morning", "chin"]);
 
 let db = load();
 const $ = (id) => document.getElementById(id);
@@ -37,15 +39,18 @@ function walkNorm(week) {
   return WALK_NORM.find(([upTo]) => week <= upTo)[1];
 }
 function dayOf(date) {
-  return db.days[date] || { km: 0, morning: false, cold: false };
+  return db.days[date] || { km: 0, morning: false, cold: false, chin: false };
 }
 function kindTitle(kind, type) {
   if (kind === "short") return `Короткая: ${WORKOUTS[type].title.toLowerCase()}`;
   return KIND_TITLE[kind] || WORKOUTS[kind].title;
 }
 function planFor(kind, type, params) {
-  const level = kind === "light" || kind === "stand" ? db.level : params.level;
+  const level = SOFT_KINDS.has(kind) ? db.level : params.level;
   return buildSession(kind, type, level, params.rounds);
+}
+function kcalOf(session) {
+  return Math.round(sessionTotals(session, currentWeight()).kcal);
 }
 function minutesOf(session) {
   return Math.round(sessionTotals(session, currentWeight()).seconds / 60);
@@ -124,9 +129,10 @@ function hardCard(plan) {
     ? { kind: plan.type, label: WORKOUTS[plan.type].title, sub: "полная тренировка" }
     : { kind: "short", label: `Короткая · ${minutesOf(planFor("short", plan.type, plan.params))} минут`, sub: "те же упражнения, 2 круга" };
   return `<article class="card main">
+    <button type="button" class="info-btn" data-info="${plan.mainKind}" data-type="${plan.type}" aria-label="Что в этой тренировке">?</button>
     <span class="eyebrow">Тренировка на сегодня</span>
     <h2>${esc(kindTitle(plan.mainKind, plan.type))}</h2>
-    <p class="meta">≈${minutesOf(main)} минут · ${exCount} упражнений · ${rounds} ${rounds === 4 ? "круга" : rounds >= 5 ? "кругов" : rounds === 1 ? "круг" : "круга"}</p>
+    <p class="meta">≈${minutesOf(main)} минут · <b>≈${kcalOf(main)} ккал</b> · ${exCount} упражнений · ${rounds} ${rounds === 4 ? "круга" : rounds >= 5 ? "кругов" : rounds === 1 ? "круг" : "круга"}</p>
     <p class="meta faint">Уровень ${plan.params.level} из ${RULES.MAX_LEVEL}</p>
     ${thumbs(main)}
     <button type="button" class="btn primary huge" data-start="${plan.mainKind}" data-type="${plan.type}">Начать</button>
@@ -145,9 +151,10 @@ function lightCard(plan) {
   }
   const s = planFor("light", null, plan.params);
   return `<article class="card main soft">
+    <button type="button" class="info-btn" data-info="light" aria-label="Что в этой тренировке">?</button>
     <span class="eyebrow">Сегодня восстановление</span>
     <h2>Спина и шея</h2>
-    <p class="meta">≈${minutesOf(s)} минут · мягко</p>
+    <p class="meta">≈${minutesOf(s)} минут · <b>≈${kcalOf(s)} ккал</b> · мягко</p>
     ${thumbs(s)}
     <button type="button" class="btn primary huge" data-start="light">Начать</button>
   </article>
@@ -166,6 +173,16 @@ function doneCard(plan) {
   ${plan.lightToday ? "" : `<div class="alts"><button type="button" class="btn alt" data-start="light"><b>Ещё: Спина и шея · ${minutesOf(planFor("light", null, plan.params))} минут</b><small>мягко, для спины и осанки</small></button></div>`}`;
 }
 
+function routineTile(kind, done, title, sub) {
+  const action = done
+    ? `<button type="button" class="btn small done" data-toggle="${kind}">Сделано ✓</button>`
+    : `<button type="button" class="btn small primary" data-start="${kind}">Начать</button>`;
+  return `<div class="tile ${done ? "on" : ""}">
+      <button type="button" class="tile-main" data-info="${kind}"><b>${esc(title)} <span class="q">?</span></b><span>${esc(sub)}</span></button>
+      <div class="tile-actions">${action}</div>
+    </div>`;
+}
+
 function markTiles(week) {
   const d = dayOf(today());
   const norm = walkNorm(week);
@@ -175,10 +192,8 @@ function markTiles(week) {
       <button type="button" class="tile-main" data-walk><b>Ходьба ✎</b><span>${fmtKm(d.km)} из ${norm} км · нажмите, чтобы ввести</span></button>
       <div class="tile-actions"><button type="button" class="btn small" data-km="1">+1 км</button><button type="button" class="btn small" data-km="2">+2 км</button></div>
     </div>
-    <div class="tile ${d.morning ? "on" : ""}">
-      <div class="tile-main"><b>Утренний комплекс</b><span>5 минут для спины</span></div>
-      <div class="tile-actions"><button type="button" class="btn small ${d.morning ? "done" : ""}" data-toggle="morning">${d.morning ? "Сделано ✓" : "Сделал"}</button></div>
-    </div>
+    ${routineTile("morning", d.morning, "Утренний комплекс", "6 упражнений для спины, 5 минут")}
+    ${routineTile("chin", d.chin, "Шея и подбородок", "6 упражнений от второго подбородка, 6 минут")}
     <div class="tile ${d.cold ? "on" : ""}">
       <div class="tile-main"><b>Холодный душ</b><span>30–90 секунд в конце</span></div>
       <div class="tile-actions"><button type="button" class="btn small ${d.cold ? "done" : ""}" data-toggle="cold">${d.cold ? "Сделано ✓" : "Сделал"}</button></div>
@@ -286,9 +301,10 @@ function finishSession(result, params, resetSeen) {
   };
   const seenBase = resetSeen ? {} : db.seen;
   const seen = partial ? seenBase : sessionExercises(session).reduce((acc, k) => ({ ...acc, [seenKey(k, level)]: (acc[seenKey(k, level)] || 0) + 1 }), { ...seenBase });
-  const hardKind = session.kind !== "light" && session.kind !== "stand";
+  const hardKind = !SOFT_KINDS.has(session.kind);
   const fb = hardKind && !partial && feel ? applyFeedback({ level, easyStreak: db.easyStreak, hardStreak: db.hardStreak }, feel, { noRaise: params.noRaise }) : null;
-  const days = session.kind === "light" && !partial ? { ...db.days, [today()]: { ...dayOf(today()), morning: true } } : db.days;
+  const habit = session.kind === "chin" ? "chin" : session.kind === "light" || session.kind === "morning" ? "morning" : null;
+  const days = habit && !partial ? { ...db.days, [today()]: { ...dayOf(today()), [habit]: true } } : db.days;
   commit({
     ...db,
     sessions: [...db.sessions, entry],
@@ -327,6 +343,8 @@ function otherSheet() {
       ${["A", "B", "C"].map((x) => item(x, x, WORKOUTS[x].title, `≈${minutesOf(planFor(x, x, p))} минут`)).join("")}
       ${item("short", plan.type, `Короткая: ${WORKOUTS[plan.type].title.toLowerCase()}`, `≈${minutesOf(planFor("short", plan.type, p))} минут, 2 круга`)}
       ${item("light", null, "Спина и шея", `≈${minutesOf(planFor("light", null, p))} минут, мягко`)}
+      ${item("morning", null, "Утренний комплекс", "5 минут для спины, с таймером")}
+      ${item("chin", null, "Шея и подбородок", "6 минут, от второго подбородка")}
       ${item("stand", null, "Стоя, без пола", `≈${minutesOf(planFor("stand", null, p))} минут: хлопки, колени, глубокий присед`)}
       <button type="button" class="list-item" data-walk><b>Прогулка</b><small>отметить километры</small></button>
     </div>`);
@@ -339,6 +357,37 @@ function parseWalk(text, unit) {
   if (!Number.isFinite(n) || n <= 0) return null;
   const km = unit === "steps" ? n / STEPS_PER_KM : n;
   return km > MAX_KM_PER_DAY ? null : Math.round(km * 10) / 10;
+}
+
+const INFO_INTRO = {
+  morning: "Делайте сразу после сна, можно прямо на кровати или на коврике. Снимает утреннюю скованность в спине и шее.",
+  light: "Мягкая тренировка для спины, шеи и осанки. Подходит на следующий день после силовой.",
+  stand: "Всё стоя, без пола и прыжков: пресс, ноги и пульс.",
+  chin: "Жир под подбородком уходит только вместе с общим весом. Эти упражнения укрепляют шею и возвращают голову на место, поэтому подбородок становится заметно меньше уже через 3–4 недели. Лучше каждый день."
+};
+
+/** «?»: what is inside a session, what each exercise gives and how many calories. */
+function infoSheet(kind, type) {
+  const plan = nextSession(db, today());
+  const session = planFor(kind, type, plan.params);
+  const weight = currentWeight();
+  const totals = sessionTotals(session, weight);
+  const level = session.level;
+  const rows = sessionExercises(session).map((k) => `<details class="info-row">
+      <summary><span class="info-thumb">${frameHtml(k, 0)}</span><span class="info-text"><b>${esc(exName(k, level))}</b><small>${esc(EXERCISES[k].gives)}</small></span><span class="info-kcal"><b>${Math.round(kcalPerMin(k, weight))}</b><small>ккал/мин</small></span></summary>
+      <div class="info-more">${howToHtml(k, level, null, { showTitle: false })}</div>
+    </details>`).join("");
+  const intro = INFO_INTRO[kind] ? `<p class="muted">${esc(INFO_INTRO[kind])}</p>` : "";
+  const extra = kind === "morning" || kind === "chin" ? `<button type="button" class="btn big" data-toggle="${kind}">${dayOf(today())[kind] ? "Снять отметку" : "Сделал без таймера"}</button>` : "";
+  const body = openSheet(`<h3 class="sheet-title">${esc(kindTitle(kind, type))}</h3>
+    <p class="info-sum">≈${Math.round(totals.seconds / 60)} минут · ≈${Math.round(totals.kcal)} ккал за всю тренировку</p>
+    ${intro}
+    <p class="muted small">Нажмите на упражнение: фото, техника и видео.</p>
+    <div class="info-list">${rows}</div>
+    <button type="button" class="btn primary big" data-start="${kind}" ${type ? `data-type="${type}"` : ""}>Начать</button>
+    ${extra}
+    <p class="fine">Калории примерные, для вашего веса ${fmt1(weight)} кг.</p>`);
+  body.addEventListener("click", onTodayClick);
 }
 
 function walkSheet(date = today()) {
@@ -417,7 +466,8 @@ function onTodayClick(e) {
   if (el.hasAttribute("data-walk")) { closeSheet(); walkSheet(); return; }
   if (el.hasAttribute("data-other")) { otherSheet(); return; }
   if (el.dataset.km) { addKm(Number(el.dataset.km)); return; }
-  if (el.dataset.toggle) { const k = el.dataset.toggle; setDay(today(), { [k]: !dayOf(today())[k] }); return; }
+  if (el.dataset.info) { infoSheet(el.dataset.info, el.dataset.type || nextSession(db, today()).type); return; }
+  if (el.dataset.toggle) { closeSheet(); const k = el.dataset.toggle; setDay(today(), { [k]: !dayOf(today())[k] }); return; }
   if (el.hasAttribute("data-weight")) { askWeight(currentWeight(), saveWeight); return; }
   if (el.hasAttribute("data-snooze")) { commit({ ...db, weightSnooze: today() }); return; }
   if (el.hasAttribute("data-goto-safety")) { showTab("help"); $("help-safety").open = true; $("help-safety").scrollIntoView(); }
@@ -444,8 +494,10 @@ function weekTiles() {
   const km = dates.reduce((s, d) => s + dayOf(d).km, 0);
   const mornings = dates.filter((d) => dayOf(d).morning).length;
   const normKm = walkNorm(week) * 7;
+  const kcalWork = db.sessions.filter((s) => dates.includes(s.date)).reduce((sum, s) => sum + s.kcal, 0);
+  const kcalWalk = Math.round(km * WALK_KCAL_PER_KG_KM * currentWeight());
   const tile = (v, k, ratio) => `<div class="stat"><b>${v}</b><span>${k}</span><div class="bar"><i style="width:${Math.min(100, Math.round(ratio * 100))}%"></i></div></div>`;
-  return `<div class="stats">${tile(`${hardInLast7(db.sessions, t)} из ${plan.cap}`, "силовых за 7 дней", hardInLast7(db.sessions, t) / plan.cap)}${tile(`${fmtKm(km)} из ${normKm}`, "км ходьбы", km / normKm)}${tile(`${mornings} из 7`, "утренних комплексов", mornings / 7)}</div>`;
+  return `<div class="stats">${tile(`${hardInLast7(db.sessions, t)} из ${plan.cap}`, "силовых за 7 дней", hardInLast7(db.sessions, t) / plan.cap)}${tile(`${fmtKm(km)} из ${normKm}`, "км ходьбы", km / normKm)}${tile(`${mornings} из 7`, "утренних комплексов", mornings / 7)}<div class="stat"><b>≈${kcalWork + kcalWalk}</b><span>ккал за 7 дней: тренировки ${kcalWork} + ходьба ${kcalWalk}</span></div></div>`;
 }
 
 function weightChart() {
@@ -479,8 +531,8 @@ function dayCards() {
     const d = dayOf(date);
     const w = db.weights.find((x) => x.date === date);
     const parts = [
-      ...ss.map((s) => `${kindTitle(s.kind, s.type)}${s.partial ? " (неполная)" : ""} · ${s.minutes} мин`),
-      d.km ? `ходьба ${fmtKm(d.km)} км` : "", d.morning ? "утро ✓" : "", d.cold ? "холод ✓" : "", w ? `вес ${fmt1(w.kg)}` : ""
+      ...ss.map((s) => `${kindTitle(s.kind, s.type)}${s.partial ? " (неполная)" : ""} · ${s.minutes} мин · ${s.kcal} ккал`),
+      d.km ? `ходьба ${fmtKm(d.km)} км` : "", d.morning ? "утро ✓" : "", d.chin ? "подбородок ✓" : "", d.cold ? "холод ✓" : "", w ? `вес ${fmt1(w.kg)}` : ""
     ].filter(Boolean);
     return `<button type="button" class="day" data-day="${date}"><b>${esc(dateTitle(date))}</b><span>${esc(parts.join(" · "))}</span></button>`;
   }).join("")}</div>`;
@@ -549,7 +601,7 @@ function bindHelp() {
   $("backup-load").addEventListener("change", (e) => { const f = e.target.files?.[0]; if (f) restoreBackup(f); e.target.value = ""; });
   $("opt-sound").addEventListener("change", (e) => commit({ ...db, sound: e.target.checked }));
   $("help-ex").innerHTML = ["A", "B", "C"].map((t) => `<h4>${esc(WORKOUTS[t].title)}</h4>${WORKOUTS[t].list.map((k) => `<details class="ex"><summary>${esc(EXERCISES[k].name)}</summary>${howToHtml(k, db.level)}</details>`).join("")}`).join("")
-    + `<h4>Спина и шея, стоя без пола</h4>${["birdDog", "chinTuck", "neckFront", "neckSide", "clapLeg", "kneePush", "kneeElbow", "deepSquat"].map((k) => `<details class="ex"><summary>${esc(EXERCISES[k].name)}</summary>${howToHtml(k, db.level)}</details>`).join("")}`;
+    + `<h4>Спина, шея, подбородок, стоя без пола</h4>${["birdDog", "chinTuck", "chinLift", "headLift", "neckFront", "neckSide", "clapLeg", "kneePush", "kneeElbow", "deepSquat"].map((k) => `<details class="ex"><summary>${esc(EXERCISES[k].name)}</summary>${howToHtml(k, db.level)}</details>`).join("")}`;
 }
 
 /* ---------- tabs ---------- */
@@ -572,6 +624,7 @@ function render() {
 
 function init() {
   bindTimer();
+  bindVideos();
   bindHelp();
   $("screen-today").addEventListener("click", onTodayClick);
   $("screen-diary").addEventListener("click", (e) => {
