@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Минус 15</title>
+<meta name="description" content="Домашние тренировки с таймером и дневником">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Минус 15">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="onboarding" class="onboarding" hidden></div>
+
+<main>
+  <section id="screen-today" class="screen" aria-label="Сегодня"></section>
+  <section id="screen-diary" class="screen" aria-label="Дневник" hidden></section>
+  <section id="screen-help" class="screen" aria-label="Справка" hidden>
+    <header class="large-title"><h1>Справка</h1><p>Всё, что не нужно каждый день</p></header>
+
+    <details class="help" open>
+      <summary>Как пользоваться</summary>
+      <ol class="cues">
+        <li>Откройте приложение и нажмите большую кнопку: тренировку выбрали за вас.</li>
+        <li>Идите за таймером: он голосом говорит, что делать и когда отдыхать.</li>
+        <li>В конце нажмите, как было. Завтра приложение само предложит следующее.</li>
+      </ol>
+      <p class="muted">Очередь силовых: ноги → спина и грудь → жиросжигающий круг. После силовой на следующий день предлагается мягкая «Спина и шея». «Легко» два раза подряд делает тренировки тяжелее, «Тяжело» сразу облегчает. Пропуски не страшны: после паузы нагрузка сама снижается.</p>
+      <label class="switch" for="opt-sound"><input type="checkbox" id="opt-sound" checked> Звук и голос в таймере</label>
+    </details>
+
+    <details class="help">
+      <summary>Упражнения: фото, техника, видео</summary>
+      <div id="help-ex"></div>
+    </details>
+
+    <details class="help">
+      <summary>Стоячий круг «1×100»: стоит ли</summary>
+      <p>Хлопки под ногой, колено вверх с толчком, колено к локтю и глубокий присед. Оценка для вас:</p>
+      <ul class="cues">
+        <li><b>Плюсы:</b> без прыжков и пола, мягко для коленей и спины, разгоняет пульс, учит балансу. Хорошо для дней, когда лень ложиться на пол, и для перерывов на работе.</li>
+        <li><b>Минусы:</b> почти не нагружает грудь, руки и верх спины. Живот от «колено к локтю» не уходит: жир точечно не сжигается. По калориям это ≈7–8 ккал в минуту, вдвое меньше бёрпи.</li>
+        <li><b>100 повторов подряд</b> при большом весе на старте рано: колени и поясница устанут раньше мышц. В приложении это 3 круга по 45 секунд, а 100 повторов можно делать через 4–6 недель.</li>
+        <li><b>Как правильно:</b> ногу поднимать к рукам, а не горбиться к ноге. Руки за головой не тянут шею. В приседе пятки на полу, глубина пока спина прямая.</li>
+        <li><b>Вывод:</b> стоит, но как дополнение. Он есть в «Другой тренировке» под названием «Стоя, без пола» и не заменяет силовые A, B и C.</li>
+      </ul>
+    </details>
+
+    <details class="help">
+      <summary>Самые эффективные упражнения без железа</summary>
+      <table class="tbl">
+        <thead><tr><th>Упражнение</th><th>ккал/мин</th><th>Когда</th></tr></thead>
+        <tbody>
+          <tr><td>Бёрпи шагом</td><td>≈12</td><td>Уже в программе</td></tr>
+          <tr><td><a href="https://www.youtube.com/watch?v=KDnojHoz4hE" target="_blank" rel="noopener">Отжимания Тайсона</a></td><td>≈12</td><td>С 4-го уровня вместо отжиманий</td></tr>
+          <tr><td><a href="https://www.youtube.com/watch?v=Hn5PZ_pfyoM" target="_blank" rel="noopener">Индийские отжимания</a></td><td>≈12</td><td>С 3-го уровня</td></tr>
+          <tr><td>Скалолаз</td><td>≈11</td><td>Уже в программе</td></tr>
+          <tr><td>Приседания с рюкзаком</td><td>≈9</td><td>С 3-го уровня</td></tr>
+          <tr><td>Бёрпи с прыжком, выпрыгивания</td><td>≈13–14</td><td>Только после −8 кг</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">Отжимания Тайсона: упор лёжа, стопы в стену, таз назад к пяткам, затем волной вперёд в отжимание. Легче с колен. Цифры вроде «2 000 отжиманий в день» не подтверждены.</p>
+    </details>
+
+    <details class="help">
+      <summary>Утро и спина</summary>
+      <p>Утренняя скованность при сидячей работе обычно от слабых мышц кора и долгого сидения. Каждое утро 5 минут: колени к груди, кошка-корова, ягодичный мост, птица-собака, поза ребёнка, втягивание подбородка. Тренировка «Спина и шея» включает всё это и сама отмечает утренний комплекс.</p>
+      <ul class="cues">
+        <li>Каждые 45–60 минут вставать на 2–3 минуты.</li>
+        <li>Монитор на уровне глаз, стопы на полу.</li>
+        <li>Звонки стоя или на ходу.</li>
+      </ul>
+    </details>
+
+    <details class="help">
+      <summary>Шея и второй подбородок</summary>
+      <p>Жир под подбородком уходит только вместе с общим весом, обычно заметно после −5…8 кг. Быстрее помогают осанка головы (втягивание подбородка, изометрия шеи каждый день) и меньше соли и алкоголя вечером: утренний отёк лица уменьшается.</p>
+    </details>
+
+    <details class="help">
+      <summary>Ходьба</summary>
+      <p>Недели 1–2: 4 км в день. Недели 3–4: 5 км. Недели 5–8: 6 км. С 9-й недели 7–8 км (≈10 000 шагов). 1 км ≈ 1 350 шагов и ≈48 ккал сверх покоя. Можно частями по 1–2 км.</p>
+    </details>
+
+    <details class="help">
+      <summary>Питание</summary>
+      <p><b>≈2 000 ккал в день</b>, не ниже 1 800. Белок 150 г: мясо, рыба, яйца, творог в каждом приёме. Тарелка: половина овощи, четверть белок с ладонь, четверть гарнир с кулак.</p>
+      <p><b>Свободно:</b> курица, говядина, рыба, яйца, творог, кефир, гречка, овсянка, бобовые, овощи, фрукты 2–3 в день.</p>
+      <p><b>Ограничить:</b> сладкие напитки и соки, алкоголь, выпечку и баурсаки, жареное, майонез, колбасы. Плов и бешбармак можно: мясо с ладонь, гарнир с кулак.</p>
+      <p class="muted">Пример дня ≈1 900 ккал: омлет из 3 яиц и овсянка; курица 180 г с гречкой и салатом; творог с яблоком; рыба с тушёными овощами; кефир.</p>
+    </details>
+
+    <details class="help">
+      <summary>Холодная вода</summary>
+      <p>Даёт бодрость и меньше ощущения стресса через 12 часов (мета-анализ 2025). Что она снижает кортизол или поднимает тестостерон, не доказано. В конце тёплого душа 15–30 с прохладной, за месяц до 1–2 минут. Сразу после силовой не надо: холод снижает прирост мышц. При давлении и болезнях сердца сначала к врачу.</p>
+    </details>
+
+    <details class="help">
+      <summary>Седина</summary>
+      <p>Способа, который надёжно вернёт цвет, нет. Смысл есть в одном: сдать анализы на витамин B12, ферритин, витамин D и ТТГ. При дефиците B12 или проблемах щитовидки после лечения цвет иногда частично возвращается. Курение ускоряет седину. Витамины и маски «от седины» без дефицита не помогают.</p>
+    </details>
+
+    <details class="help" id="help-safety">
+      <summary>Когда нельзя тренироваться</summary>
+      <ul class="cues">
+        <li>Боль в груди, давление выше 140/90, перебои в сердце: сначала к терапевту.</li>
+        <li>Боль в спине отдаёт в ногу ниже колена, немеет нога или пах, слабость в ноге: к врачу сразу.</li>
+        <li>Острая или «стреляющая» боль в суставе: стоп, на следующей тренировке нажмите «Тяжело».</li>
+        <li>Мышцы болят 1–3 дня после тренировки: это нормально, ходьба помогает.</li>
+      </ul>
+    </details>
+
+    <details class="help">
+      <summary>Резервная копия</summary>
+      <p class="muted">Все записи хранятся на этом телефоне. Раз в месяц сохраняйте копию в «Файлы» или отправьте себе в мессенджер.</p>
+      <button type="button" class="btn big" id="backup-save">Сохранить копию</button>
+      <label class="btn big file" for="backup-load">Восстановить из файла<input type="file" id="backup-load" accept="application/json,.json"></label>
+    </details>
+
+    <details class="help">
+      <summary>Источники</summary>
+      <p class="muted">Расход энергии: Compendium of Physical Activities 2024. Обмен: формула Миффлина — Сан Жеора. Холодная вода: Cain et al., PLOS ONE, 2025; Buijze et al., 2016. Фото: Free Exercise DB (общественное достояние) и wger.de (CC BY-SA 4.0). Это не медицинская консультация.</p>
+    </details>
+  </section>
+</main>
+
+<nav class="tabbar" aria-label="Разделы">
+  <button type="button" data-tab="today" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg><span>Сегодня</span></button>
+  <button type="button" data-tab="diary" aria-current="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg><span>Дневник</span></button>
+  <button type="button" data-tab="help" aria-current="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 16v.5M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7"/></svg><span>Справка</span></button>
+</nav>
+
+<div id="timer" class="timer" hidden role="dialog" aria-modal="true" aria-labelledby="t-name" data-phase="warm">
+  <div class="t-top">
+    <span class="t-phase" id="t-phase">РАЗМИНКА</span>
+    <span class="t-progress" id="t-progress"></span>
+    <button type="button" class="t-close" id="t-close" aria-label="Закончить тренировку">✕</button>
+  </div>
+  <div class="t-run" id="t-run">
+    <button type="button" class="t-clock" id="t-clock" aria-label="Пауза">0:00</button>
+    <div class="t-bar"><i id="t-bar"></i></div>
+    <h2 class="t-name" id="t-name"></h2>
+    <p class="t-cue" id="t-cue"></p>
+    <div class="t-media" id="t-media"></div>
+    <p class="t-next" id="t-next"></p>
+    <div class="t-paused" id="t-paused" hidden>
+      <button type="button" class="btn primary big" data-act="resume">Продолжить</button>
+      <button type="button" class="btn big" data-act="how">Как делать?</button>
+      <button type="button" class="btn link" data-act="stop">Закончить тренировку</button>
+    </div>
+    <div class="t-controls">
+      <button type="button" class="t-how" id="t-how">Как делать?</button>
+      <div class="t-row">
+        <button type="button" class="t-side" id="t-back" aria-label="Назад">←</button>
+        <button type="button" class="t-main" id="t-pause">Пауза</button>
+        <button type="button" class="t-side" id="t-next-btn" aria-label="Дальше">→</button>
+      </div>
+    </div>
+  </div>
+  <div class="t-done" id="t-done" hidden>
+    <h2 id="d-title">Готово!</h2>
+    <p class="d-min"><b id="d-min">0</b> минут</p>
+    <p class="muted" id="d-kcal"></p>
+    <p class="d-ask" id="d-ask">Как было?</p>
+    <div class="feel" id="d-feel">
+      <button type="button" data-feel="easy">Легко</button>
+      <button type="button" data-feel="ok">В самый раз</button>
+      <button type="button" data-feel="hard">Тяжело</button>
+    </div>
+    <button type="button" class="btn primary huge" id="d-save" hidden>Записать</button>
+    <button type="button" class="btn link" id="d-drop" hidden>Не записывать</button>
+  </div>
+</div>
+
+<div id="sheet" class="sheet" hidden>
+  <div class="backdrop"></div>
+  <div class="sheet-panel" role="dialog" aria-modal="true"><div class="grabber"></div><div class="sheet-body"></div></div>
+</div>
+<div id="toast" class="toast" hidden role="status"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
