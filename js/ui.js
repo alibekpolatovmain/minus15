@@ -78,7 +78,8 @@ export function bindVideos() {
     const id = encodeURIComponent(btn.dataset.yt);
     const frame = document.createElement("div");
     frame.className = "yt-frame";
-    frame.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=0" title="Видео упражнения" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+    const origin = encodeURIComponent(location.origin);
+    frame.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&rel=0&origin=${origin}" title="Видео упражнения" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
     btn.closest(".yt").replaceWith(frame);
   });
 }
@@ -96,6 +97,35 @@ export function openSheet(html, { onClose } = {}) {
   sheetClose = onClose || null;
   requestAnimationFrame(() => root.classList.add("open"));
   return fresh;
+}
+
+const DRAG_CLOSE_PX = 90;
+
+/** Close by ✕, by tapping the dark area, by Escape, or by pulling the sheet down. */
+export function bindSheet() {
+  const root = document.getElementById("sheet");
+  const panel = root.querySelector(".sheet-panel");
+  root.querySelector(".backdrop").addEventListener("click", closeSheet);
+  root.querySelector(".sheet-close").addEventListener("click", closeSheet);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
+  let startY = null;
+  let dy = 0;
+  panel.addEventListener("touchstart", (e) => {
+    const onHead = e.target.closest(".sheet-head");
+    startY = onHead || panel.scrollTop <= 0 ? e.touches[0].clientY : null;
+    dy = 0;
+  }, { passive: true });
+  panel.addEventListener("touchmove", (e) => {
+    if (startY === null) return;
+    dy = e.touches[0].clientY - startY;
+    if (dy > 0) { panel.classList.add("dragging"); panel.style.transform = `translateY(${dy}px)`; }
+  }, { passive: true });
+  panel.addEventListener("touchend", () => {
+    panel.classList.remove("dragging");
+    panel.style.transform = "";
+    if (startY !== null && dy > DRAG_CLOSE_PX) closeSheet();
+    startY = null;
+  });
 }
 
 export function closeSheet() {

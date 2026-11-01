@@ -5,7 +5,7 @@ import {
   daysSinceHard, isHard, hardInLast7, weekIndex, RULES
 } from "./plan.js";
 import { load, save, exportFile, importFile } from "./store.js";
-import { esc, exName, seenKey, frameHtml, howToHtml, openSheet, closeSheet, toast, fmt1, fmtKm, kcalPerMin, bindVideos } from "./ui.js";
+import { esc, exName, seenKey, frameHtml, howToHtml, openSheet, closeSheet, bindSheet, toast, fmt1, fmtKm, kcalPerMin, bindVideos } from "./ui.js";
 import { startTimer, bindTimer } from "./timer.js";
 
 const STEPS_PER_KM = 1350;
@@ -375,7 +375,7 @@ function infoSheet(kind, type) {
   const level = session.level;
   const rows = sessionExercises(session).map((k) => `<details class="info-row">
       <summary><span class="info-thumb">${frameHtml(k, 0)}</span><span class="info-text"><b>${esc(exName(k, level))}</b><small>${esc(EXERCISES[k].gives)}</small></span><span class="info-kcal"><b>${Math.round(kcalPerMin(k, weight))}</b><small>ккал/мин</small></span></summary>
-      <div class="info-more">${howToHtml(k, level, null, { showTitle: false })}</div>
+      <div class="info-more">${howToHtml(k, level, null, { showTitle: false })}<button type="button" class="btn link info-collapse" data-collapse>Свернуть ▲</button></div>
     </details>`).join("");
   const intro = INFO_INTRO[kind] ? `<p class="muted">${esc(INFO_INTRO[kind])}</p>` : "";
   const extra = kind === "morning" || kind === "chin" ? `<button type="button" class="btn big" data-toggle="${kind}">${dayOf(today())[kind] ? "Снять отметку" : "Сделал без таймера"}</button>` : "";
@@ -387,7 +387,16 @@ function infoSheet(kind, type) {
     <button type="button" class="btn primary big" data-start="${kind}" ${type ? `data-type="${type}"` : ""}>Начать</button>
     ${extra}
     <p class="fine">Калории примерные, для вашего веса ${fmt1(weight)} кг.</p>`);
-  body.addEventListener("click", onTodayClick);
+  body.addEventListener("click", (e) => {
+    const collapse = e.target.closest("[data-collapse]");
+    if (collapse) {
+      const row = collapse.closest("details");
+      row.open = false;
+      row.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    onTodayClick(e);
+  });
 }
 
 function walkSheet(date = today()) {
@@ -633,7 +642,7 @@ function init() {
     if (e.target.closest("[data-weight]")) askWeight(currentWeight(), saveWeight);
   });
   document.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
-  document.querySelector("#sheet .backdrop").addEventListener("click", closeSheet);
+  bindSheet();
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") render(); });
   if (!db.startDate) renderOnboarding();
   render();
