@@ -308,33 +308,44 @@ const EXTRA_VIDEOS = {
   neckStretch: ["VcKay4B1zVk", "Если болит шея · 0:24"]
 };
 
+// Body region of each circuit exercise; circuits never put two of the same region in a row.
+const REGIONS = { squat: "legs", lunge: "legs", latLunge: "legs", calf: "legs", bridge: "hips", pushup: "push", pike: "push", snowAngel: "pull", superman: "pull", plank: "core", sideplank: "core", deadbug: "core", climber: "core", burpee: "full" };
+
 export const EXERCISES = Object.freeze(Object.fromEntries(Object.entries(BASE_EXERCISES).map(([key, ex]) => {
   const [met, gives] = DETAILS[key] || [3, ex.muscles];
-  return [key, { ...ex, met, gives, video: ex.video || EXTRA_VIDEOS[key] || null }];
+  return [key, { ...ex, met, gives, region: REGIONS[key] || null, video: ex.video || EXTRA_VIDEOS[key] || null }];
 })));
 
-export const WARMUP = [["armCircles", 60], ["cat", 60], ["chinTuck", 30], ["squat", 60, "Лёгкие приседания"], ["climber", 60, "Медленный скалолаз"], ["kneesChest", 30]];
-export const COOLDOWN = [["child", 60], ["kneeChest1", 60], ["calfStretch", 60], ["neckStretch", 60], ["breathe", 60]];
-export const LIGHT_FLOW = [["kneesChest", 45], ["cat", 60], ["bridge", 60], ["birdDog", 90], ["child", 45], ["chinTuck", 60], ["neckFront", 60], ["neckSide", 60], ["neckStretch", 60], ["superman", 45], ["deadbug", 60], ["breathe", 60]];
-export const MORNING_FLOW = [["kneesChest", 45], ["cat", 60], ["bridge", 60], ["birdDog", 60], ["child", 30], ["chinTuck", 45]];
-export const CHIN_FLOW = [["chinTuck", 60], ["chinLift", 60], ["headLift", 60], ["neckFront", 60], ["neckSide", 60], ["neckStretch", 60]];
+// Warm-up follows the RAMP pattern: raise pulse → mobilise → activate → potentiate.
+export const WARMUP = [["march", 45], ["armCircles", 45], ["stepJack", 45], ["squat", 45, "Лёгкие приседания"], ["latLunge", 45, "Лёгкие боковые выпады"], ["cat", 45], ["climber", 30, "Медленный скалолаз"]];
+// Cool-down goes top-down: standing → kneeling → lying → sitting.
+export const COOLDOWN = [["calfStretch", 60], ["child", 60], ["kneeChest1", 60], ["neckStretch", 60], ["breathe", 60]];
+// Grouped by body position so you change position as rarely as possible: lying on back → on stomach → on all fours → sitting.
+export const LIGHT_FLOW = [["kneesChest", 45], ["bridge", 60], ["deadbug", 60], ["superman", 45], ["cat", 60], ["birdDog", 90], ["child", 45], ["chinTuck", 60], ["neckFront", 90], ["neckSide", 90], ["neckStretch", 60], ["breathe", 60]];
+export const MORNING_FLOW = [["kneesChest", 45], ["bridge", 60], ["cat", 60], ["birdDog", 90], ["child", 30], ["chinTuck", 60]];
+export const CHIN_FLOW = [["headLift", 60], ["chinTuck", 60], ["chinLift", 75], ["neckFront", 90], ["neckSide", 90], ["neckStretch", 60]];
 export const STAND_WARM = [["march", 60], ["stepJack", 60]];
 export const STAND_LIST = ["clapLeg", "kneePush", "kneeElbow", "deepSquat"];
-export const STAND_SHAPE = { work: 45, rest: 15, rounds: 3 };
+export const STAND_SHAPE = { work: 40, rest: 20, rounds: 3 };
+export const PREP_SEC = 10;
+export const ROUND_REST_SEC = 45;
 
+// Full-body circuits (each muscle twice+ a week), alternating legs / push / pull / core
+// so one area rests while the next works (body-weight circuit principle, ACSM 2013).
 export const WORKOUTS = {
-  A: { title: "Ноги и ягодицы", list: ["squat", "lunge", "bridge", "latLunge", "calf"] },
-  B: { title: "Грудь, плечи и спина", list: ["pushup", "snowAngel", "pike", "superman", "sideplank"] },
-  C: { title: "Жиросжигающий круг", list: ["burpee", "squat", "climber", "pushup", "plank"] }
+  A: { title: "Всё тело: ноги и грудь", list: ["squat", "pushup", "bridge", "snowAngel", "plank"] },
+  B: { title: "Всё тело: плечи и спина", list: ["lunge", "pike", "superman", "latLunge", "sideplank"] },
+  C: { title: "Кардио-круг", list: ["burpee", "lunge", "pushup", "climber", "bridge"] }
 };
 
+// Work/rest per level. Rest never drops below 20 s: enough to breathe and change position.
 export const LEVELS = [
-  { work: 25, rest: 35, rounds: 3 },
+  { work: 30, rest: 30, rounds: 3 },
   { work: 30, rest: 30, rounds: 4 },
   { work: 35, rest: 25, rounds: 4 },
   { work: 40, rest: 20, rounds: 4 },
-  { work: 45, rest: 15, rounds: 4 },
-  { work: 50, rest: 10, rounds: 4 }
+  { work: 45, rest: 20, rounds: 4 },
+  { work: 50, rest: 20, rounds: 4 }
 ];
 
-export const MET = { warm: 3.5, cool: 2.5, rest: 2.5, flow: 2.8, work: { A: 8, B: 7, C: 9.5, stand: 5 } };
+export const MET = { warm: 3.5, cool: 2.5, rest: 2.5, prep: 2, flow: 2.8, work: { A: 8, B: 7, C: 9.5, stand: 5 } };

@@ -3,7 +3,7 @@
   --bg: #F2F2F7; --card: #FFFFFF; --ink: #111418; --muted: #6B7280; --line: #E3E5EA;
   --accent: #1D4ED8; --accent-soft: #E3EAFD; --on-accent: #FFFFFF;
   --good: #15803D; --good-soft: #DCF3E4; --warn: #9A5B00; --warn-soft: #FCEFD9; --bad: #C2261A; --bad-soft: #FCE3E0;
-  --ph-work: #1D4ED8; --ph-rest: #116A3C; --ph-warm: #7A4E00; --ph-flow: #5B3FA8;
+  --ph-work: #1D4ED8; --ph-rest: #116A3C; --ph-warm: #7A4E00; --ph-flow: #5B3FA8; --ph-prep: #334155;
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
   --tab-h: 56px;
   color-scheme: light;
@@ -13,7 +13,7 @@
     --bg: #000000; --card: #1C1C1E; --ink: #F2F2F7; --muted: #98A0AB; --line: #2C2C2E;
     --accent: #6E9BFF; --accent-soft: #17233F; --on-accent: #08101F;
     --good: #4ADE80; --good-soft: #10291A; --warn: #F2B04D; --warn-soft: #2E2210; --bad: #FF7A6E; --bad-soft: #3A1512;
-    --ph-work: #1E46C8; --ph-rest: #0F5E35; --ph-warm: #6B4500; --ph-flow: #4C3592;
+    --ph-work: #1E46C8; --ph-rest: #0F5E35; --ph-warm: #6B4500; --ph-flow: #4C3592; --ph-prep: #2B3646;
     color-scheme: dark;
   }
 }
@@ -224,6 +224,7 @@ details.ex[open] { padding-bottom: 12px; }
 .timer[data-phase="work"] { background: var(--ph-work); }
 .timer[data-phase="rest"] { background: var(--ph-rest); }
 .timer[data-phase="flow"] { background: var(--ph-flow); }
+.timer[data-phase="prep"] { background: var(--ph-prep); }
 .timer[data-phase="done"] { background: var(--bg); color: var(--ink); }
 .timer.paused .t-clock, .timer.paused .t-media, .timer.paused .t-name, .timer.paused .t-cue { opacity: 0.35; }
 .t-top { display: flex; align-items: center; gap: 12px; min-height: 48px; }
@@ -308,3 +309,4 @@ details.ex[open] { padding-bottom: 12px; }
 .yt-link { font-size: 14px; color: var(--muted); text-align: center; }
 .tile-main b .q { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 11px; background: var(--bg); color: var(--muted); font-size: 13px; font-weight: 800; vertical-align: 1px; margin-left: 4px; }
 .tile-main span.q { color: var(--muted); }
+.t-paused-title { font-size: 20px; font-weight: 700; text-align: center; }

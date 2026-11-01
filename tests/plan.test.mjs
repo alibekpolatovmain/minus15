@@ -97,17 +97,62 @@ test("two hard feedbacks in a row propose the short session", () => {
   assert.equal(plan.mainKind, "short");
 });
 
-test("full A at level 2 lasts about 30 minutes, short about 17", () => {
-  const full = sessionTotals(buildSession("A", "A", 2, 4), 95);
-  assert.ok(full.seconds > 28 * 60 && full.seconds < 31 * 60, `full ${full.seconds}`);
-  const short = sessionTotals(buildSession("short", "A", 2, 4), 95);
-  assert.ok(short.seconds > 14 * 60 && short.seconds < 19 * 60, `short ${short.seconds}`);
-  const light = sessionTotals(buildSession("light", null, 2, 4), 95);
-  assert.ok(light.seconds > 11 * 60 && light.seconds < 13 * 60, `light ${light.seconds}`);
+test("durations: full ≈30–34 min, short ≈15–22, back & neck ≈12–17, morning and chin ≤ 9", () => {
+  const min = (kind, type) => sessionTotals(buildSession(kind, type, 2, 4), 95).seconds / 60;
+  const full = min("A", "A");
+  assert.ok(full >= 30 && full <= 34, `full ${full}`);
+  const short = min("short", "A");
+  assert.ok(short >= 15 && short <= 22, `short ${short}`);
+  const light = min("light", null);
+  assert.ok(light >= 12 && light <= 17, `light ${light}`);
+  assert.ok(min("morning", null) <= 9, `morning ${min("morning", null)}`);
+  assert.ok(min("chin", null) <= 9, `chin ${min("chin", null)}`);
 });
 
 test("partial ratio counts only work time", () => {
   const session = buildSession("A", "A", 2, 4);
   const spent = session.steps.map((s) => (s.phase === "work" ? 0 : s.sec * 1000));
   assert.equal(sessionTotals(session, 95, spent).ratio, 0);
+});
+
+/* ---------- session structure (evidence-based layout) ---------- */
+import { LEVELS, WORKOUTS, EXERCISES } from "../js/data.js";
+
+test("every level leaves at least 20 s to rest and change position", () => {
+  LEVELS.forEach((lv, i) => assert.ok(lv.rest >= 20, `level ${i + 1} rest ${lv.rest}`));
+});
+
+test("a 10 s get-ready step comes before every flow item and before the circuit", () => {
+  for (const kind of ["light", "morning", "chin"]) {
+    const { steps } = buildSession(kind, null, 2, 4);
+    steps.forEach((s, i) => {
+      if (s.phase === "flow") assert.equal(steps[i - 1]?.phase, "prep", `${kind} step ${i} has no prep`);
+    });
+  }
+  const a = buildSession("A", "A", 2, 4).steps;
+  const firstWork = a.findIndex((s) => s.phase === "work");
+  assert.equal(a[firstWork - 1].phase, "prep");
+  assert.equal(a[firstWork - 1].sec, 10);
+});
+
+test("rounds are separated by a longer rest", () => {
+  const steps = buildSession("A", "A", 2, 4).steps;
+  const roundRests = steps.filter((s) => s.phase === "rest" && s.roundBreak);
+  assert.equal(roundRests.length, 3);
+  roundRests.forEach((s) => assert.ok(s.sec >= 45));
+});
+
+test("each strength circuit alternates body regions (no two same regions in a row)", () => {
+  for (const [type, w] of Object.entries(WORKOUTS)) {
+    const regions = w.list.map((k) => EXERCISES[k].region);
+    regions.forEach((r, i) => assert.ok(r, `${type}: ${w.list[i]} has no region`));
+    for (let i = 1; i < regions.length; i += 1) {
+      assert.notEqual(regions[i], regions[i - 1], `${type}: ${w.list[i - 1]} → ${w.list[i]} both ${regions[i]}`);
+    }
+  }
+});
+
+test("every strength session trains legs, push, pull and core across the week", () => {
+  const all = new Set(Object.values(WORKOUTS).flatMap((w) => w.list.map((k) => EXERCISES[k].region)));
+  for (const r of ["legs", "push", "pull", "core"]) assert.ok(all.has(r), `missing ${r}`);
 });

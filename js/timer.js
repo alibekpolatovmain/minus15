@@ -7,7 +7,8 @@ const TICK_MS = 200;
 const FLIP_MS = 1500;
 const BACK_DOUBLE_MS = 2000;
 const MIN_WORK_TO_RECORD_S = 60;
-const PHASE = { warm: "РАЗМИНКА", work: "РАБОТА", rest: "ОТДЫХ", cool: "ЗАМИНКА", flow: "СПИНА И ШЕЯ" };
+const PHASE = { warm: "РАЗМИНКА", work: "РАБОТА", rest: "ОТДЫХ", cool: "ЗАМИНКА", flow: "СПИНА И ШЕЯ", prep: "ПРИГОТОВЬСЯ" };
+const PAUSE_LIKE = new Set(["rest", "prep"]);
 const SOFT_KINDS = new Set(["light", "stand", "morning", "chin"]);
 const FLOW_LABEL = { morning: "УТРО", chin: "ПОДБОРОДОК", light: "СПИНА И ШЕЯ" };
 const NUM_WORDS = ["", "один", "два", "три", "четыре", "пять", "шесть"];
@@ -58,42 +59,53 @@ async function keepAwake() {
 const stepName = (step) => exName(step.ex, run.level, step.label);
 
 function progressText(step) {
-  if (step.phase === "work" || step.phase === "rest") return `Круг ${step.round} из ${step.rounds}`;
+  if (step.round) return `Круг ${step.round} из ${step.rounds}`;
+  if (step.phase === "prep") {
+    const next = run.steps[run.i + 1];
+    return next?.count ? `${next.idx + 1} из ${next.count}` : "";
+  }
   return `${step.idx + 1} из ${step.count}`;
 }
 
 function segmentsHtml(step) {
-  if (step.phase !== "work" && step.phase !== "rest") return "";
+  if (!step.round) return "";
   return `<div class="segs">${Array.from({ length: step.count }, (_, i) => `<i class="${i < step.idx ? "done" : i === step.idx ? "cur" : ""}"></i>`).join("")}</div>`;
 }
 
+const roundWords = (step) => `Круг ${NUM_WORDS[step.round] || step.round} из ${NUM_WORDS[step.rounds] || step.rounds}`;
+
 function announce(step) {
-  if (step.phase === "rest") { say(`Отдых. Дальше: ${stepName({ ...step, label: null })}`); return; }
   const name = stepName(step);
   const cue = EXERCISES[step.ex].cues[0];
-  if (step.phase === "work" && step.idx === 0) {
-    say(`Круг ${NUM_WORDS[step.round] || step.round} из ${NUM_WORDS[step.rounds] || step.rounds}. ${name}${step.round === 1 ? ". " + cue : ""}`);
+  if (step.phase === "prep") { say(`${step.round ? roundWords(step) + ". " : ""}Приготовься: ${name}. ${cue}`); return; }
+  if (step.phase === "rest") {
+    const next = stepName({ ...step, label: null });
+    say(step.roundBreak ? `Круг закончен. Отдых ${step.sec} секунд. Дальше ${roundWords(step).toLowerCase()}: ${next}` : `Отдых. Дальше: ${next}`);
     return;
   }
+  if (run.steps[run.i - 1]?.phase === "prep") { say("Начали!"); return; }
   say(step.phase === "work" && step.round === 1 ? `${name}. ${cue}` : name);
 }
 
 /* ---------- render ---------- */
 function render() {
   const step = run.steps[run.i];
-  const next = run.steps.slice(run.i + 1).find((s) => s.phase !== "rest");
+  const next = run.steps.slice(run.i + 1).find((s) => !PAUSE_LIKE.has(s.phase));
   const root = $("timer");
   root.dataset.phase = step.phase;
   root.classList.toggle("paused", run.paused);
   $("t-phase").textContent = step.phase === "flow" ? FLOW_LABEL[run.session.kind] || PHASE.flow : PHASE[step.phase];
   $("t-progress").innerHTML = `${esc(progressText(step))}${segmentsHtml(step)}`;
   const isRest = step.phase === "rest";
-  $("t-name").textContent = isRest ? `Дальше: ${stepName({ ...step, label: null })}` : stepName(step);
-  $("t-cue").textContent = EXERCISES[step.ex].cues[0];
+  const upcoming = stepName({ ...step, label: isRest ? null : step.label });
+  $("t-name").textContent = step.roundBreak ? "Отдых между кругами" : isRest ? `Дальше: ${upcoming}` : upcoming;
+  $("t-cue").textContent = step.roundBreak ? `Попейте воды. Потом круг ${step.round}: «${upcoming}»` : EXERCISES[step.ex].cues[0];
   $("t-media").innerHTML = frameHtml(step.ex, 0);
-  $("t-next").innerHTML = next && !isRest ? `<span>Потом:</span> ${esc(stepName(next))}` : next ? "" : "Последнее упражнение";
-  $("t-pause").textContent = run.paused ? "Продолжить" : "Пауза";
+  $("t-next").innerHTML = PAUSE_LIKE.has(step.phase) ? "" : next ? `<span>Потом:</span> ${esc(stepName(next))}` : "Последнее упражнение";
+  $("t-pause").textContent = run.ready ? "Начать" : run.paused ? "Продолжить" : "Пауза";
   $("t-paused").hidden = !run.paused;
+  $("t-paused-title").textContent = run.ready ? `Готовы? Первое: ${upcoming}` : "Пауза";
+  $("t-resume").textContent = run.ready ? "Начать" : "Продолжить";
   updateClock();
 }
 
@@ -119,7 +131,7 @@ function enter(i) {
   run.frame = 0;
   run.flipAt = Date.now() + FLIP_MS;
   render();
-  announce(run.steps[i]);
+  if (!run.ready) announce(run.steps[i]);
 }
 
 function leave() {
@@ -136,11 +148,11 @@ function tick() {
   updateClock();
   const s = Math.ceil(left / 1000);
   if (s <= 3 && s >= 1 && s !== run.lastBeep) { run.lastBeep = s; beep(660, 120); }
-  if (EXERCISES[step.ex].side && step.phase !== "rest" && !run.sideSaid && left <= (step.sec * 1000) / 2) {
+  if (EXERCISES[step.ex].side && !PAUSE_LIKE.has(step.phase) && !run.sideSaid && left <= (step.sec * 1000) / 2) {
     run.sideSaid = true;
     say("Смени сторону");
   }
-  if (frameCount(step.ex) === 2 && step.phase !== "rest" && now >= run.flipAt) {
+  if (frameCount(step.ex) === 2 && !PAUSE_LIKE.has(step.phase) && now >= run.flipAt) {
     run.frame = 1 - run.frame;
     run.flipAt = now + FLIP_MS;
     $("t-media").innerHTML = frameHtml(step.ex, run.frame);
@@ -162,15 +174,21 @@ function setPaused(paused) {
     run.endAt = Date.now() + run.remaining;
   }
   run.paused = paused;
+  const starting = !paused && run.ready;
+  if (starting) {
+    run.ready = false;
+    try { run.audio?.resume(); } catch (err) { /* audio optional */ }
+  }
   render();
+  if (starting) announce(run.steps[run.i]);
 }
 
 function forward() {
   if (!run || run.finished) return;
   leave();
-  let target = run.i + 1;
-  if (run.steps[run.i].phase === "work" && run.steps[target]?.phase === "rest") target += 1;
+  const target = run.i + 1;
   run.paused = false;
+  run.ready = false;
   if (target >= run.steps.length) finish();
   else enter(target);
 }
@@ -182,9 +200,10 @@ function back() {
   run.lastBackAt = now;
   leave();
   run.paused = false;
+  run.ready = false;
   if (!double) { enter(run.i); return; }
   let target = run.i - 1;
-  while (target > 0 && run.steps[target].phase === "rest") target -= 1;
+  while (target > 0 && PAUSE_LIKE.has(run.steps[target].phase)) target -= 1;
   enter(Math.max(0, target));
 }
 
@@ -262,7 +281,7 @@ function record(feel) {
 export function startTimer(session, { level, weight, sound, onEnd }) {
   run = {
     session, steps: session.steps, level, weight, sound, onEnd,
-    i: 0, spent: [], paused: false, finished: false, audio: sound ? makeAudio() : null,
+    i: 0, spent: [], paused: true, ready: true, finished: false, audio: sound ? makeAudio() : null,
     totalSec: session.steps.reduce((sum, s) => sum + s.sec, 0)
   };
   keepAwake();

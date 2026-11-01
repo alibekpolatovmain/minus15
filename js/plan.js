@@ -1,5 +1,5 @@
 // Scheduling rules: which session to propose today. Pure functions, no DOM, no storage.
-import { LEVELS, WORKOUTS, WARMUP, COOLDOWN, LIGHT_FLOW, MORNING_FLOW, CHIN_FLOW, STAND_WARM, STAND_LIST, STAND_SHAPE, MET } from "./data.js";
+import { LEVELS, WORKOUTS, WARMUP, COOLDOWN, LIGHT_FLOW, MORNING_FLOW, CHIN_FLOW, STAND_WARM, STAND_LIST, STAND_SHAPE, MET, PREP_SEC, ROUND_REST_SEC } from "./data.js";
 
 export const RULES = {
   EASY_WEEKS: 2,          // weeks 1–2 use the low weekly cap
@@ -148,20 +148,26 @@ export function tierOf(level) {
   return level <= 2 ? 0 : level <= 4 ? 1 : 2;
 }
 
-function flowSteps(items, phase) {
-  return items.map(([ex, sec, label], i) => ({ phase, ex, sec, label, idx: i, count: items.length }));
+function prep(ex, label = null) {
+  return { phase: "prep", ex, sec: PREP_SEC, label };
 }
 
+/** Timed items one after another, each preceded by 10 s to get into position. */
+function flowSteps(items, phase) {
+  return items.flatMap(([ex, sec, label], i) => [prep(ex, label), { phase, ex, sec, label, idx: i, count: items.length }]);
+}
+
+/** Circuit: get ready → work/rest × exercises × rounds, with a longer break between rounds. */
 function circuitSteps(list, work, rest, rounds) {
-  const steps = [];
+  const steps = [{ ...prep(list[0]), round: 1, rounds, idx: 0, count: list.length }];
   for (let r = 1; r <= rounds; r += 1) {
     list.forEach((ex, i) => {
       steps.push({ phase: "work", ex, sec: work, round: r, rounds, idx: i, count: list.length });
       const last = r === rounds && i === list.length - 1;
-      if (!last) {
-        const nextIdx = (i + 1) % list.length;
-        steps.push({ phase: "rest", ex: list[nextIdx], sec: rest, round: nextIdx === 0 ? r + 1 : r, rounds, idx: nextIdx, count: list.length });
-      }
+      if (last) return;
+      const roundBreak = i === list.length - 1;
+      const nextIdx = roundBreak ? 0 : i + 1;
+      steps.push({ phase: "rest", ex: list[nextIdx], sec: roundBreak ? ROUND_REST_SEC : rest, roundBreak, round: roundBreak ? r + 1 : r, rounds, idx: nextIdx, count: list.length });
     });
   }
   return steps;
@@ -185,7 +191,7 @@ export function buildSession(kind, type, level, rounds) {
 }
 
 export function stepMet(step, session) {
-  if (step.phase !== "work") return MET[step.phase];
+  if (step.phase !== "work") return MET[step.phase] ?? MET.rest;
   return MET.work[session.kind === "stand" ? "stand" : session.type];
 }
 

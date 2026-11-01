@@ -192,8 +192,8 @@ function markTiles(week) {
       <button type="button" class="tile-main" data-walk><b>Ходьба ✎</b><span>${fmtKm(d.km)} из ${norm} км · нажмите, чтобы ввести</span></button>
       <div class="tile-actions"><button type="button" class="btn small" data-km="1">+1 км</button><button type="button" class="btn small" data-km="2">+2 км</button></div>
     </div>
-    ${routineTile("morning", d.morning, "Утренний комплекс", "6 упражнений для спины, 5 минут")}
-    ${routineTile("chin", d.chin, "Шея и подбородок", "6 упражнений от второго подбородка, 6 минут")}
+    ${routineTile("morning", d.morning, "Утренний комплекс", `для спины после сна, ≈${minutesOf(planFor("morning", null, {}))} минут`)}
+    ${routineTile("chin", d.chin, "Шея и подбородок", `от второго подбородка, ≈${minutesOf(planFor("chin", null, {}))} минут`)}
     <div class="tile ${d.cold ? "on" : ""}">
       <div class="tile-main"><b>Холодный душ</b><span>30–90 секунд в конце</span></div>
       <div class="tile-actions"><button type="button" class="btn small ${d.cold ? "done" : ""}" data-toggle="cold">${d.cold ? "Сделано ✓" : "Сделал"}</button></div>
@@ -343,8 +343,8 @@ function otherSheet() {
       ${["A", "B", "C"].map((x) => item(x, x, WORKOUTS[x].title, `≈${minutesOf(planFor(x, x, p))} минут`)).join("")}
       ${item("short", plan.type, `Короткая: ${WORKOUTS[plan.type].title.toLowerCase()}`, `≈${minutesOf(planFor("short", plan.type, p))} минут, 2 круга`)}
       ${item("light", null, "Спина и шея", `≈${minutesOf(planFor("light", null, p))} минут, мягко`)}
-      ${item("morning", null, "Утренний комплекс", "5 минут для спины, с таймером")}
-      ${item("chin", null, "Шея и подбородок", "6 минут, от второго подбородка")}
+      ${item("morning", null, "Утренний комплекс", `≈${minutesOf(planFor("morning", null, p))} минут для спины, с таймером`)}
+      ${item("chin", null, "Шея и подбородок", `≈${minutesOf(planFor("chin", null, p))} минут, от второго подбородка`)}
       ${item("stand", null, "Стоя, без пола", `≈${minutesOf(planFor("stand", null, p))} минут: хлопки, колени, глубокий присед`)}
       <button type="button" class="list-item" data-walk><b>Прогулка</b><small>отметить километры</small></button>
     </div>`);
