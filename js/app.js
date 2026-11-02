@@ -131,6 +131,10 @@ function saveWeight(kg) {
 }
 
 /* ---------- «Сегодня» ---------- */
+const altRow = (attrs, title, sub) => `<button type="button" class="btn alt" ${attrs}><b>${esc(title)}</b><small>${esc(sub)}</small></button>`;
+// Secondary choices sit in one quiet list under the main card, so «Начать» is the only loud button.
+const altsHtml = (rows = []) => `<div class="alts">${rows.join("")}${altRow("data-other", "Другая тренировка", "выбрать самому")}</div>`;
+
 function thumbs(session) {
   return `<div class="thumbs">${sessionExercises(session).map((k) => `<span>${frameHtml(k, 0, session.level)}</span>`).join("")}</div>`;
 }
@@ -144,35 +148,34 @@ function hardCard(plan) {
     : { kind: "short", label: `Короткая · ${minLabel(planFor("short", plan.type, plan.params))}`, sub: "те же упражнения, 2 круга" };
   return `<article class="card main">
     <button type="button" class="info-btn" data-info="${plan.mainKind}" data-type="${plan.type}" aria-label="Что в этой тренировке">?</button>
-    <span class="eyebrow">Тренировка на сегодня</span>
     <h2>${esc(kindTitle(plan.mainKind, plan.type))}</h2>
     <p class="meta">${minLabel(main)} · <b>≈${kcalOf(main)} ккал</b> · ${exCount} ${plural(exCount, "упражнение", "упражнения", "упражнений")} · ${rounds} ${plural(rounds, "круг", "круга", "кругов")}</p>
     <p class="meta faint">Уровень ${plan.params.level} из ${RULES.MAX_LEVEL}</p>
     ${thumbs(main)}
     <button type="button" class="btn primary huge" data-start="${plan.mainKind}" data-type="${plan.type}">Начать</button>
   </article>
-  <div class="alts">
-    <button type="button" class="btn alt" data-start="${altFull.kind}" data-type="${plan.type}"><b>${esc(altFull.label)}</b><small>${esc(altFull.sub)}</small></button>
-    ${plan.lightToday ? "" : `<button type="button" class="btn alt" data-start="light"><b>Спина и шея · ${minLabel(planFor("light", null, plan.params))}</b><small>мягко, без прыжков</small></button>`}
-  </div>`;
+  ${altsHtml([
+    altRow(`data-start="${altFull.kind}" data-type="${plan.type}"`, altFull.label, altFull.sub),
+    plan.lightToday ? "" : altRow(`data-start="light"`, `Спина и шея · ${minLabel(planFor("light", null, plan.params))}`, "мягко, без прыжков"),
+  ])}`;
 }
 
 function lightCard(plan) {
   if (plan.lightToday) {
-    return `<article class="card main ok"><span class="eyebrow">Сегодня восстановление</span><h2>Мягкий день сделан ✓</h2>
-      <p class="meta">Добавьте прогулку, если есть время.</p>
-      <button type="button" class="btn primary huge" data-walk>Прогулка</button></article>`;
+    return `<article class="card main ok"><h2>Мягкий день сделан ✓</h2>
+      <p class="meta">Сегодня восстановление. Добавьте прогулку, если есть время.</p>
+      <button type="button" class="btn primary huge" data-walk>Прогулка</button></article>
+    ${altsHtml()}`;
   }
   const s = planFor("light", null, plan.params);
   return `<article class="card main soft">
     <button type="button" class="info-btn" data-info="light" aria-label="Что в этой тренировке">?</button>
-    <span class="eyebrow">Сегодня восстановление</span>
     <h2>Спина и шея</h2>
-    <p class="meta">${minLabel(s)} · <b>≈${kcalOf(s)} ккал</b> · мягко</p>
+    <p class="meta">Сегодня восстановление · ${minLabel(s)} · <b>≈${kcalOf(s)} ккал</b></p>
     ${thumbs(s)}
     <button type="button" class="btn primary huge" data-start="light">Начать</button>
   </article>
-  <div class="alts"><button type="button" class="btn alt" data-walk><b>Прогулка вместо тренировки</b><small>отметить километры</small></button></div>`;
+  ${altsHtml([altRow("data-walk", "Прогулка вместо тренировки", "отметить километры")])}`;
 }
 
 function doneCard(plan) {
@@ -180,12 +183,11 @@ function doneCard(plan) {
   const tomorrow = nextSession(db, addDays(today(), 1));
   const tomorrowLabel = tomorrow.status === "hard" ? kindTitle(tomorrow.mainKind, tomorrow.type) : "Спина и шея";
   return `<article class="card main ok">
-    <span class="eyebrow">Сегодня готово ✓</span>
-    <h2>${esc(kindTitle(s.kind, s.type))}</h2>
+    <h2>${esc(kindTitle(s.kind, s.type))} ✓</h2>
     <p class="meta">${s.minutes} ${plural(s.minutes, "минута", "минуты", "минут")} · <b>${s.kcal} ккал</b></p>
     <p class="meta">Завтра: ${esc(tomorrowLabel)}</p>
   </article>
-  ${plan.lightToday ? "" : `<div class="alts"><button type="button" class="btn alt" data-start="light"><b>Ещё: Спина и шея · ${minLabel(planFor("light", null, plan.params))}</b><small>мягко, для спины и осанки</small></button></div>`}`;
+  ${altsHtml([plan.lightToday ? "" : altRow(`data-start="light"`, `Ещё: Спина и шея · ${minLabel(planFor("light", null, plan.params))}`, "мягко, для спины и осанки")])}`;
 }
 
 function routineTile(kind, done, title, sub) {
@@ -211,6 +213,7 @@ function markTiles(week) {
   const d = dayOf(today());
   const norm = walkNorm(week);
   return `<h3 class="section-title">Отметить сегодня</h3>
+  ${todayBurn()}
   <div class="tiles">
     <div class="tile">
       <button type="button" class="tile-main" data-walk><b>Ходьба ›</b><span>${fmtKm(d.km)} из ${norm} км · ≈${Math.round(d.km * WALK_KCAL_PER_KG_KM * currentWeight())} ккал</span></button>
@@ -321,18 +324,16 @@ function renderToday() {
   const week = weekIndex(db.startDate, t);
   const notStarted = db.startDate && db.startDate > t;
   const card = notStarted
-    ? `<article class="card main soft"><span class="eyebrow">Старт ${esc(dateTitle(db.startDate))}</span><h2>До старта ${daysBetween(t, db.startDate)} дн.</h2><p class="meta">Можно начать раньше: нажмите «Начать».</p><button type="button" class="btn primary huge" data-start="A" data-type="A" data-early>Начать сегодня</button></article>`
+    ? `<article class="card main soft"><h2>До старта ${daysBetween(t, db.startDate)} дн.</h2><p class="meta">Старт ${esc(dateTitle(db.startDate))}. Можно начать раньше.</p><button type="button" class="btn primary huge" data-start="A" data-type="A" data-early>Начать сегодня</button></article>${altsHtml()}`
     : plan.status === "done" ? doneCard(plan) : plan.status === "light" ? lightCard(plan) : hardCard(plan);
   $("screen-today").innerHTML = `
     <header class="large-title"><h1>Сегодня</h1><p>${esc(dateTitle(t))} · неделя ${week}</p></header>
-    ${todayBurn()}
     ${plan.banner && !notStarted ? `<p class="banner">${esc(plan.banner)}</p>` : ""}
     ${card}
-    <button type="button" class="btn link other" data-other>Другая тренировка</button>
     ${weightCard()}
     ${markTiles(week)}
     ${progressBlock()}
-    <button type="button" class="btn alt results" data-results><b>Что я получу через 1, 3 и 6 месяцев</b><small>прогноз веса, силы, спины и шеи</small></button>
+    <div class="alts">${altRow("data-results", "Что я получу через 1, 3 и 6 месяцев", "прогноз веса, силы, спины и шеи")}</div>
     <button type="button" class="btn link safety" data-goto-safety>Когда нельзя тренироваться</button>`;
 }
 

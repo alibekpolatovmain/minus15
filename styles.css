@@ -398,3 +398,11 @@ body:has(#sheet:not([hidden])) .toast { bottom: auto; top: calc(env(safe-area-in
 .card.main .eyebrow, .card.main h2 { padding-right: 52px; }
 .sheet .mile { background: var(--card); }
 .bodymap text { font-size: 12px; }
+
+/* --- home: one loud action; secondary choices are one quiet grouped list --- */
+.alts { gap: 0; background: var(--card); border-radius: 16px; overflow: hidden; }
+.alts .btn.alt { background: none; border-radius: 0; min-height: 60px; color: var(--ink); }
+.alts .btn.alt + .btn.alt { box-shadow: inset 0 1px 0 var(--line); }
+.alts .btn.alt::after { color: var(--muted); }
+.alts:has([data-results]) { margin-top: 4px; }
+.section-title + .burn { margin: 0; }
