@@ -19,8 +19,8 @@ const WEEKDAY_SHORT = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
 const WEEKDAYS = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
 const KIND_TITLE = { light: "Спина и шея", stand: "Стоя, без пола", morning: "Утренний комплекс", chin: "Шея и подбородок", office: "Офис: перерыв от сидения" };
 const SOFT_KINDS = new Set(["light", "stand", "morning", "chin", "office"]);
-// Break up sitting every 30–60 min (Dunstan 2012); three office breaks a day is the target.
-const OFFICE_GOAL = 3;
+// One full office routine a day; short stand-ups every 30–60 min do the rest (Dunstan 2012).
+const OFFICE_GOAL = 1;
 
 let db = load();
 const $ = (id) => document.getElementById(id);
@@ -202,8 +202,8 @@ function officeTile(count) {
   const s = planFor("office", null, {});
   const done = count >= OFFICE_GOAL;
   return `<div class="tile ${done ? "on" : ""}">
-      <button type="button" class="tile-main" data-info="office"><b>Офис <span class="q">?</span></b><span>${count} из ${OFFICE_GOAL} перерывов · ${minLabel(s)} · ≈${kcalOf(s)} ккал</span></button>
-      <div class="tile-actions"><button type="button" class="btn small ${done ? "done" : ""}" data-start="office">${count ? "Ещё раз" : "Начать"}</button></div>
+      <button type="button" class="tile-main" data-info="office"><b>Офис <span class="q">?</span></b><span>раз в день, стоя и сидя · ${minLabel(s)} · ≈${kcalOf(s)} ккал</span></button>
+      <div class="tile-actions"><button type="button" class="btn small ${done ? "done" : ""}" data-start="office">${done ? "Сделано ✓" : "Начать"}</button></div>
     </div>`;
 }
 
@@ -430,7 +430,7 @@ function otherSheet() {
       ${item("light", null, "Спина и шея", "мягко, без прыжков")}
       ${item("morning", null, "Утренний комплекс", "для спины после сна")}
       ${item("chin", null, "Шея и подбородок", "от второго подбородка")}
-      ${item("office", null, "Офис", "стоя и сидя, без пота, каждые 1–2 часа")}
+      ${item("office", null, "Офис", "стоя и сидя, без пота, раз в день")}
       ${item("stand", null, "Стоя, без пола", "хлопки, колени, глубокий присед")}
     </div>
     <p class="list-group">Без таймера</p>
@@ -447,7 +447,7 @@ function parseWalk(text, unit) {
 }
 
 const INFO_INTRO = {
-  office: "Каждые 30–60 минут сидения вставайте хотя бы на пару минут, а 2–3 раза за день делайте этот комплекс. Всё стоя или сидя, в обычной одежде и без пота. Короткие перерывы в сидении снижают сахар после еды, а упражнения для лопаток и шеи на рабочем месте уменьшают боль в шее и плечах.",
+  office: "Каждые 30–60 минут сидения вставайте хотя бы на пару минут, а раз в день делайте этот комплекс. Всё стоя или сидя, в обычной одежде и без пота. Короткие перерывы в сидении снижают сахар после еды, а упражнения для лопаток и шеи на рабочем месте уменьшают боль в шее и плечах.",
   morning: "Делайте сразу после сна, можно прямо на кровати или на коврике. Снимает утреннюю скованность в спине и шее.",
   light: "Мягкая тренировка для спины, шеи и осанки. Подходит на следующий день после силовой.",
   stand: "Всё стоя, без пола и прыжков: пресс, ноги и пульс.",
@@ -636,7 +636,7 @@ function dayCards() {
     const w = db.weights.find((x) => x.date === date);
     const parts = [
       ...ss.map((s) => `${kindTitle(s.kind, s.type)}${s.partial ? " (неполная)" : ""} · ${s.minutes} мин · ${s.kcal} ккал`),
-      d.km ? `ходьба ${fmtKm(d.km)} км` : "", d.morning ? "утро ✓" : "", d.chin ? "подбородок ✓" : "", d.office ? `офис ×${d.office}` : "", d.cold ? "холод ✓" : "", w ? `вес ${fmt1(w.kg)}` : ""
+      d.km ? `ходьба ${fmtKm(d.km)} км` : "", d.morning ? "утро ✓" : "", d.chin ? "подбородок ✓" : "", d.office ? (d.office > 1 ? `офис ×${d.office}` : "офис ✓") : "", d.cold ? "холод ✓" : "", w ? `вес ${fmt1(w.kg)}` : ""
     ].filter(Boolean);
     return `<button type="button" class="day" data-day="${date}"><b>${esc(dateTitle(date))}</b><span>${esc(parts.join(" · "))}</span></button>`;
   }).join("")}</div>`;
