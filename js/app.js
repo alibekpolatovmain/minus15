@@ -7,6 +7,8 @@ import {
 import { load, save, exportFile, importFile } from "./store.js";
 import { esc, exName, seenKey, frameHtml, howToHtml, openSheet, closeSheet, bindSheet, toast, fmt1, fmtKm, kcalPerMin, bindVideos } from "./ui.js";
 import { startTimer, bindTimer } from "./timer.js";
+import { netWorkoutKcal } from "./forecast.js";
+import { monthSheet } from "./month.js";
 
 const STEPS_PER_KM = 1350;
 const MAX_KM_PER_DAY = 60;
@@ -265,6 +267,34 @@ function todayBurn() {
   return `<div class="burn"><span>Сожжено сегодня</span><b>${train + walk} ккал</b><small>${parts || "пока 0: начните с тренировки или прогулки"}</small></div>`;
 }
 
+/* ---------- «Сколько сброшу за месяц» ---------- */
+/** Net kcal a day from workouts and walks over the given dates. */
+function activityPerDay(dates) {
+  const w = currentWeight();
+  const work = db.sessions.filter((s) => dates.includes(s.date)).reduce((sum, s) => sum + netWorkoutKcal(s.kcal, s.minutes, w), 0);
+  const walk = dates.reduce((sum, d) => sum + dayOf(d).km, 0) * WALK_KCAL_PER_KG_KM * w;
+  return Math.round((work + walk) / dates.length);
+}
+/** Kcal a day if the plan is followed: the weekly cap of full workouts plus the walking norm. */
+function plannedActivity() {
+  const t = today();
+  const plan = nextSession(db, t);
+  const main = planFor(plan.type, plan.type, plan.params);
+  const workout = netWorkoutKcal(kcalOf(main), minutesOf(main), currentWeight());
+  const walk = walkNorm(weekIndex(db.startDate, t)) * WALK_KCAL_PER_KG_KM * currentWeight();
+  return Math.round((plan.cap * workout) / 7 + walk);
+}
+function openMonth() {
+  const t = today();
+  const since = db.startDate && db.startDate <= t ? daysBetween(db.startDate, t) + 1 : 1;
+  const week = Array.from({ length: Math.min(7, since) }, (_, i) => addDays(t, -i));
+  monthSheet({
+    profile: db.profile, intake: db.intake, weight: currentWeight(),
+    activity: { today: activityPerDay([t]), week: activityPerDay(week), plan: plannedActivity() },
+    onSave: ({ profile, intake }) => commit({ ...db, profile, intake })
+  });
+}
+
 /* ---------- «Что я получу»: honest forecast ---------- */
 // Realistic fat loss: 0.5 kg a week up to ~0.8% of body weight (with ~500 kcal deficit from food).
 const LOSS_PER_WEEK_MIN = 0.5;
@@ -333,7 +363,7 @@ function renderToday() {
     ${weightCard()}
     ${markTiles(week)}
     ${progressBlock()}
-    <div class="alts">${altRow("data-results", "Что я получу через 1, 3 и 6 месяцев", "прогноз веса, силы, спины и шеи")}</div>
+    <div class="alts">${altRow("data-month", "Сколько сброшу за месяц", "по вашей еде и тренировкам")}${altRow("data-results", "Что я получу через 1, 3 и 6 месяцев", "прогноз веса, силы, спины и шеи")}</div>
     <button type="button" class="btn link safety" data-goto-safety>Когда нельзя тренироваться</button>`;
 }
 
@@ -575,6 +605,7 @@ function onTodayClick(e) {
   if (el.hasAttribute("data-walk")) { closeSheet(); walkSheet(); return; }
   if (el.hasAttribute("data-other")) { otherSheet(); return; }
   if (el.hasAttribute("data-results")) { resultsSheet(); return; }
+  if (el.hasAttribute("data-month")) { openMonth(); return; }
   if (el.dataset.km) { addKm(Number(el.dataset.km)); return; }
   if (el.dataset.info) { infoSheet(el.dataset.info, el.dataset.type || nextSession(db, today()).type); return; }
   if (el.dataset.toggle) { closeSheet(); const k = el.dataset.toggle; setDay(today(), { [k]: !dayOf(today())[k] }); return; }

@@ -406,3 +406,23 @@ body:has(#sheet:not([hidden])) .toast { bottom: auto; top: calc(env(safe-area-in
 .alts .btn.alt::after { color: var(--muted); }
 .alts:has([data-results]) { margin-top: 4px; }
 .section-title + .burn { margin: 0; }
+
+/* ---------- «Сколько сброшу за месяц» ---------- */
+.month-profile { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.month-profile label { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+.num-input.small { min-height: 52px; font-size: 22px; }
+.month-label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 8px; font-size: 16px; }
+.month-label b { font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.range { width: 100%; height: 44px; accent-color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { min-height: 40px; padding: 0 14px; border: 0; border-radius: 20px; background: var(--accent-soft); color: var(--accent); font: 600 14px/1 var(--font); cursor: pointer; }
+.month-result { background: var(--card); border-radius: 16px; padding: 16px; display: grid; gap: 12px; }
+.month-end { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 12px; }
+.month-end span { grid-column: 1 / -1; color: var(--muted); font-size: 15px; }
+.month-end b { font-size: 40px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.month-end em { font-style: normal; font-size: 22px; font-weight: 700; color: var(--good); font-variant-numeric: tabular-nums; }
+.month-weeks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.month-weeks div { display: grid; gap: 2px; padding: 8px 6px; border-radius: 10px; background: var(--bg); text-align: center; }
+.month-weeks small { font-size: 12px; color: var(--muted); }
+.month-weeks b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.month-end em.up { color: var(--warn); }

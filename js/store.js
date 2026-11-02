@@ -21,7 +21,9 @@ export const DEFAULTS = Object.freeze({
   days: {},
   weights: [],
   weightSnooze: null,
-  homeHintShown: false
+  homeHintShown: false,
+  profile: Object.freeze({ sex: "m", height: null, age: null }),
+  intake: null
 });
 
 const num = (v, min, max, fallback) => {
@@ -74,7 +76,13 @@ export function validate(raw) {
       .map((w) => ({ date: w.date, kg: num(w.kg, 40, 250, 90) }))
       .slice(-1000),
     weightSnooze: date(raw.weightSnooze),
-    homeHintShown: raw.homeHintShown === true
+    homeHintShown: raw.homeHintShown === true,
+    profile: {
+      sex: raw.profile?.sex === "f" ? "f" : "m",
+      height: raw.profile?.height == null ? null : Math.round(num(raw.profile.height, 120, 230, 175)),
+      age: raw.profile?.age == null ? null : Math.round(num(raw.profile.age, 14, 100, 35))
+    },
+    intake: raw.intake == null ? null : Math.round(num(raw.intake, 800, 6000, 2200))
   };
 }
 
