@@ -29,6 +29,14 @@ const END_CUE_MIN_STEP_S = 15;
 const END_CUE_QUIET_MS = (END_CUE_S + 1) * 1000;
 // Warm-up moves are done slower than in the circuit.
 const WARM_TEMPO_SCALE = 1.5;
+// Beat under the voice, like a follow-along video: a soft tick on every move, a higher one at the start of each rep.
+const BEAT_HZ = [520, 390];
+const BEAT_MS = 45;
+const BEAT_VOL = 0.08;
+// The photo follows the beat only for quick moves; slow ones (marching, circles) keep flipping on their own.
+const SYNC_MAX_SEC = 3;
+const RETURN_WORD = /^(вверх|вниз|вернуть|обратно|встали|назад к бёдрам)$/i;
+const HOLD_WORD = /^(держи|сожми|пауза)$/i;
 
 let run = null;
 const $ = (id) => document.getElementById(id);
@@ -42,13 +50,13 @@ function makeAudio() {
     return null;
   }
 }
-function beep(freq, ms) {
+function beep(freq, ms, vol = 0.2) {
   if (!run?.sound || !run.audio) return;
   try {
     const osc = run.audio.createOscillator();
     const gain = run.audio.createGain();
     osc.frequency.value = freq;
-    gain.gain.value = 0.2;
+    gain.gain.value = vol;
     osc.connect(gain).connect(run.audio.destination);
     osc.start();
     osc.stop(run.audio.currentTime + ms / 1000);
@@ -106,20 +114,34 @@ function announce(step) {
   else if (afterPrep) say(EXERCISES[step.ex].hold ? "Начали! Держим" : "Начали!");
 }
 
-/** Voice guidance during the work: a repeated rhythm («вниз… вверх…») or a countdown for holds. */
+const beatSynced = (ex) => ex.tempo && ex.tempo.every(([, sec]) => sec <= SYNC_MAX_SEC);
+
+/** Start/finish photo that matches the word: the first move goes to «finish», a return word back to «start», holds stay. */
+function syncFrame(step, ex, word, idx) {
+  if (!beatSynced(ex) || frameCount(step.ex, run.level) !== 2 || HOLD_WORD.test(word)) return;
+  const target = idx > 0 && RETURN_WORD.test(word) ? 0 : 1;
+  run.frame = target === run.frame ? 1 - run.frame : target;
+  $("t-media").innerHTML = frameHtml(step.ex, run.frame, run.level);
+}
+
+/** Beat, photo and voice during the work: a repeated rhythm («вниз… вверх…») or a countdown for holds. */
 function rhythm(step, now, left) {
-  if (!run.tempoVoice || left < (hasEndCue(step) ? END_CUE_QUIET_MS : TEMPO_QUIET_END_MS)) return;
+  if (left < (hasEndCue(step) ? END_CUE_QUIET_MS : TEMPO_QUIET_END_MS)) return;
   const ex = EXERCISES[step.ex];
   if (ex.tempo) {
     if (now < run.tempoAt) return;
-    const [word, sec] = ex.tempo[run.tempoIdx % ex.tempo.length];
+    const idx = run.tempoIdx % ex.tempo.length;
+    const [word, sec] = ex.tempo[idx];
     run.tempoIdx += 1;
     run.tempoAt = now + sec * 1000 * (step.phase === "warm" ? WARM_TEMPO_SCALE : 1);
+    beep(BEAT_HZ[idx === 0 ? 0 : 1], BEAT_MS, BEAT_VOL);
+    syncFrame(step, ex, word, idx);
+    if (!run.tempoVoice) return;
     $("t-beat").textContent = word;
     say(word, TEMPO_RATE);
     return;
   }
-  if (!ex.hold) return;
+  if (!run.tempoVoice || !ex.hold) return;
   const s = Math.ceil(left / 1000);
   if (s % HOLD_EVERY_S !== 0 || s >= step.sec || s === run.holdSaid) return;
   run.holdSaid = s;
@@ -133,8 +155,8 @@ const hasEndCue = (step) => step.phase !== "prep" && step.sec >= END_CUE_MIN_STE
 function endCue(step, s) {
   if (run.endSaid || s !== END_CUE_S || !hasEndCue(step)) return;
   run.endSaid = true;
-  const text = step.phase === "rest" ? "Пять секунд, приготовься" : "Осталось пять секунд";
-  $("t-beat").textContent = step.phase === "rest" ? "" : "Ещё 5 секунд";
+  const text = step.phase === "rest" ? "Пять секунд. Исходное положение" : "Осталось пять секунд";
+  $("t-beat").textContent = step.phase === "rest" ? "Исходное положение" : "Ещё 5 секунд";
   say(text);
 }
 
@@ -164,7 +186,12 @@ function updateClock() {
   const left = run.paused ? run.remaining : run.endAt - Date.now();
   const total = Math.max(0, Math.ceil(left / 1000));
   $("t-clock").textContent = `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
-  $("t-bar").style.width = `${Math.min(100, Math.max(0, (left / (step.sec * 1000)) * 100))}%`;
+  const share = Math.min(1, Math.max(0, left / (step.sec * 1000)));
+  $("t-bar").style.width = `${share * 100}%`;
+  // Rest reads like a stopwatch: the ring empties, the next move fades in for the last seconds.
+  const root = $("timer");
+  root.style.setProperty("--left", share.toFixed(3));
+  root.classList.toggle("soon", step.phase === "rest" && left <= END_CUE_S * 1000);
   const live = sessionTotals(run.session, run.weight, spentNow());
   $("t-kcal").textContent = `${Math.round(live.kcal)}`;
   $("t-elapsed").textContent = `${Math.floor(live.seconds / 60)}:${String(Math.floor(live.seconds % 60)).padStart(2, "0")} из ${Math.round(run.totalSec / 60)} мин`;
@@ -230,7 +257,7 @@ function tick() {
   }
   if (!PAUSE_LIKE.has(step.phase)) rhythm(step, now, left);
   endCue(step, s);
-  if (frameCount(step.ex, run.level) === 2 && !PAUSE_LIKE.has(step.phase) && now >= run.flipAt) {
+  if (frameCount(step.ex, run.level) === 2 && !PAUSE_LIKE.has(step.phase) && !beatSynced(ex) && now >= run.flipAt) {
     run.frame = 1 - run.frame;
     run.flipAt = now + FLIP_MS;
     $("t-media").innerHTML = frameHtml(step.ex, run.frame, run.level);
