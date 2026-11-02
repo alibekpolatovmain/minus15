@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { restingKcal, dailyNeed, projectWeights, netWorkoutKcal, isProfileComplete, KCAL_PER_KG } from "../js/forecast.js";
+import { restingKcal, dailyNeed, projectWeights, netWorkoutKcal, isProfileComplete, monthChange, KCAL_PER_KG } from "../js/forecast.js";
 
 const man = { weight: 95, height: 180, age: 35, sex: "m" };
 
@@ -40,4 +40,16 @@ test("profile needs a sane height and age", () => {
   assert.equal(isProfileComplete({ height: 180, age: 35 }), true);
   assert.equal(isProfileComplete({ height: null, age: 35 }), false);
   assert.equal(isProfileComplete({ height: 180, age: 5 }), false);
+});
+
+test("month change: eating as usual, only extra movement counts", () => {
+  const kg = monthChange({ profile: man, intake: null, activity: 257 });
+  assert.ok(Math.abs(kg - -1) < 0.03, `kg ${kg}`);
+});
+
+test("month change uses the recorded intake when there is one", () => {
+  const usual = monthChange({ profile: man, intake: null, activity: 0 });
+  const less = monthChange({ profile: man, intake: dailyNeed(man) - 300, activity: 0 });
+  assert.equal(Math.round(usual * 100), 0);
+  assert.ok(less < -1.1 && less > -1.2, `less ${less}`);
 });

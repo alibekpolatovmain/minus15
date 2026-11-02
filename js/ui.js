@@ -3,6 +3,8 @@ import { EXERCISES, FIGURES, FIGURE_VIEWBOX, YT } from "./data.js";
 import { tierOf } from "./plan.js";
 import { bodyMapHtml } from "./bodymap.js";
 
+export const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+
 export const IMG = (id, n, ext = "jpg") => `img/${id}_${n}.${ext}`;
 
 export function esc(text) {

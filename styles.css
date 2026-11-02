@@ -407,22 +407,59 @@ body:has(#sheet:not([hidden])) .toast { bottom: auto; top: calc(env(safe-area-in
 .alts:has([data-results]) { margin-top: 4px; }
 .section-title + .burn { margin: 0; }
 
-/* ---------- «Сколько сброшу за месяц» ---------- */
-.month-profile { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.month-profile label { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
-.num-input.small { min-height: 52px; font-size: 22px; }
+/* ---------- «Динамика» ---------- */
+button.burn { width: 100%; border: 0; font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
+.burn .burn-pace { grid-column: 1 / -1; margin-top: 8px; padding-top: 10px; box-shadow: inset 0 1px 0 var(--line); color: var(--ink); font-size: 16px; }
+.burn .burn-pace b { font-size: 18px; color: var(--good); }
+.burn .burn-pace u { color: var(--accent); text-decoration: none; font-weight: 600; }
+.wheel-col { display: grid; gap: 6px; justify-items: center; font-size: 14px; font-weight: 500; color: var(--muted); }
+.wheel-col select { font-size: 28px; font-weight: 700; min-width: 120px; }
+.wheels:has(.wheel-col) { gap: 16px; }
 .month-label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 8px; font-size: 16px; }
 .month-label b { font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .range { width: 100%; height: 44px; accent-color: var(--accent); }
-.chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip { min-height: 40px; padding: 0 14px; border: 0; border-radius: 20px; background: var(--accent-soft); color: var(--accent); font: 600 14px/1 var(--font); cursor: pointer; }
-.month-result { background: var(--card); border-radius: 16px; padding: 16px; display: grid; gap: 12px; }
-.month-end { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 12px; }
-.month-end span { grid-column: 1 / -1; color: var(--muted); font-size: 15px; }
-.month-end b { font-size: 40px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
-.month-end em { font-style: normal; font-size: 22px; font-weight: 700; color: var(--good); font-variant-numeric: tabular-nums; }
-.month-weeks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.month-weeks div { display: grid; gap: 2px; padding: 8px 6px; border-radius: 10px; background: var(--bg); text-align: center; }
-.month-weeks small { font-size: 12px; color: var(--muted); }
-.month-weeks b { font-size: 17px; font-variant-numeric: tabular-nums; }
-.month-end em.up { color: var(--warn); }
+.dyn-card { background: var(--card); border-radius: 16px; padding: 14px 14px 10px; display: grid; gap: 6px; }
+.dyn-when { color: var(--muted); font-size: 15px; }
+.dyn-end { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.dyn-end b { font-size: 40px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.dyn-end em { font-style: normal; font-size: 22px; font-weight: 700; color: var(--good); font-variant-numeric: tabular-nums; }
+.dyn-end em.up { color: var(--warn); }
+.dchart { width: 100%; height: auto; display: block; overflow: visible; }
+.dchart .grid { stroke: var(--line); stroke-width: 1; }
+.dchart .tick { fill: var(--muted); font: 500 11px var(--font); }
+.dchart .tick.now { fill: var(--ink); font-weight: 700; }
+.dchart .val { fill: var(--ink); font: 700 11px var(--font); }
+.dchart .l-now { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 5 5; }
+.dchart .l-now-dot { fill: var(--muted); }
+.dchart .l-plan { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linejoin: round; }
+.dchart .l-plan-dot { fill: var(--accent); }
+.dchart .b-train { fill: var(--accent); }
+.dchart .b-walk { fill: var(--good); }
+.dchart .avg { stroke: var(--ink); stroke-width: 1.2; stroke-dasharray: 4 4; opacity: 0.6; }
+.dyn-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 13px; color: var(--muted); }
+.dyn-legend span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.dyn-legend i { display: inline-block; width: 14px; height: 4px; border-radius: 2px; }
+.dyn-legend .k-now { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px); }
+.dyn-legend .k-plan, .dyn-legend .k-train { background: var(--accent); }
+.dyn-legend .k-walk { background: var(--good); }
+.dyn-legend .k-avg { background: repeating-linear-gradient(90deg, var(--ink) 0 3px, transparent 3px 6px); opacity: 0.6; }
+.wi-list { display: grid; background: var(--card); border-radius: 16px; overflow: hidden; }
+.wi { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.wi + .wi { box-shadow: inset 0 1px 0 var(--line); }
+.wi-text { display: grid; gap: 2px; }
+.wi-text b { font-size: 16px; }
+.wi-text small { font-size: 13px; color: var(--muted); }
+.wi em { font-style: normal; font-weight: 700; color: var(--good); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wi-check { width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--line); display: grid; place-items: center; }
+.wi[aria-pressed="true"] .wi-check { background: var(--accent); border-color: var(--accent); }
+.wi[aria-pressed="true"] .wi-check::after { content: ""; width: 10px; height: 6px; border: solid var(--on-accent); border-width: 0 0 2.5px 2.5px; transform: translateY(-1px) rotate(-45deg); }
+.dyn-food summary { font-weight: 600; }
+.inline-link { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); cursor: pointer; text-decoration: underline; }
+.stages { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; background: var(--card); border-radius: 16px; overflow: hidden; }
+.stages li { position: relative; display: grid; gap: 2px; padding: 12px 14px 12px 40px; }
+.stages li + li { box-shadow: inset 0 1px 0 var(--line); }
+.stages li::before { content: ""; position: absolute; left: 16px; top: 18px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.stages li:first-child::before { background: var(--muted); }
+.stages small { font-size: 13px; color: var(--muted); font-weight: 600; }
+.stages b { font-size: 17px; }
+.stages p { font-size: 15px; color: var(--ink); opacity: 0.85; }

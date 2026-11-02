@@ -5,10 +5,11 @@ import {
   daysSinceHard, isHard, hardInLast7, weekIndex, RULES
 } from "./plan.js";
 import { load, save, exportFile, importFile } from "./store.js";
-import { esc, exName, seenKey, frameHtml, howToHtml, openSheet, closeSheet, bindSheet, toast, fmt1, fmtKm, kcalPerMin, bindVideos } from "./ui.js";
+import { esc, exName, seenKey, frameHtml, howToHtml, openSheet, closeSheet, bindSheet, toast, fmt1, fmtKm, kcalPerMin, bindVideos, MONTHS } from "./ui.js";
 import { startTimer, bindTimer } from "./timer.js";
-import { netWorkoutKcal } from "./forecast.js";
-import { monthSheet } from "./month.js";
+import { netWorkoutKcal, monthChange, isProfileComplete } from "./forecast.js";
+import { dynamicsSheet, askProfile } from "./dynamics.js";
+import { resultsSheet } from "./results.js";
 
 const STEPS_PER_KM = 1350;
 const MAX_KM_PER_DAY = 60;
@@ -16,7 +17,6 @@ const HOME_HINT_DELAY_MS = 3800;
 const WALK_KCAL_PER_KG_KM = 0.5;
 const WEIGHT_EVERY_DAYS = 7;
 const WALK_NORM = [[2, 4], [4, 5], [8, 6], [Infinity, 7]];
-const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
 const WEEKDAY_SHORT = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
 const WEEKDAYS = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
 const KIND_TITLE = { light: "Спина и шея", stand: "Стоя, без пола", morning: "Утренний комплекс", chin: "Шея и подбородок", office: "Офис: перерыв от сидения" };
@@ -91,10 +91,10 @@ function renderOnboarding() {
     <button type="button" class="btn big" id="ob-monday">С понедельника</button>
     <p class="fine">Если боль в груди при нагрузке или давление выше 140/90, сначала к врачу.</p>
   </div>`;
-  const begin = (startDate) => askWeight(db.startWeight, (kg) => {
+  const begin = (startDate) => askWeight(db.startWeight, (kg) => askProfile(db.profile, (profile) => {
     root.hidden = true;
-    commit({ ...db, startDate, startWeight: kg, weights: [{ date: today(), kg }] });
-  }, "Ваш вес сейчас?", "Прокрутите колёса до своего веса.");
+    commit({ ...db, startDate, startWeight: kg, weights: [{ date: today(), kg }], profile });
+  }), "Ваш вес сейчас?", "Прокрутите колёса до своего веса.");
   $("ob-today").addEventListener("click", () => begin(today()));
   $("ob-monday").addEventListener("click", () => {
     const d = new Date();
@@ -260,20 +260,38 @@ function progressBlock() {
 }
 
 function todayBurn() {
-  const t = today();
-  const train = db.sessions.filter((s) => s.date === t).reduce((sum, s) => sum + s.kcal, 0);
-  const walk = Math.round(dayOf(t).km * WALK_KCAL_PER_KG_KM * currentWeight());
+  const { train, walk } = burnOn(today());
   const parts = [train ? `тренировки ${train}` : "", walk ? `ходьба ${walk}` : ""].filter(Boolean).join(" · ");
-  return `<div class="burn"><span>Сожжено сегодня</span><b>${train + walk} ккал</b><small>${parts || "пока 0: начните с тренировки или прогулки"}</small></div>`;
+  return `<button type="button" class="burn" data-dyn><span>Сожжено сегодня</span><b>${train + walk} ккал</b><small>${parts || "пока 0: начните с тренировки или прогулки"}</small>${paceLine()}</button>`;
 }
 
-/* ---------- «Сколько сброшу за месяц» ---------- */
+/** «В таком темпе через месяц −0,8 кг» under today's calories; asks for height and age first. */
+function paceLine() {
+  if (!isProfileComplete(db.profile)) return `<span class="burn-pace">Сколько сброшу за месяц? <u>Указать рост и возраст</u> ›</span>`;
+  const activity = activityPerDay(recentDates());
+  if (!activity && db.intake == null) return `<span class="burn-pace">Сделайте тренировку или прогулку, и я покажу, сколько сбросите за месяц ›</span>`;
+  const kg = monthChange({ profile: { ...db.profile, weight: currentWeight() }, intake: db.intake, activity });
+  const text = kg <= -0.05 ? `−${fmt1(-kg)} кг` : kg >= 0.05 ? `+${fmt1(kg)} кг` : "без изменений";
+  return `<span class="burn-pace">В таком темпе через месяц <b>${text}</b> ›</span>`;
+}
+
+/* ---------- «Динамика»: calories by day and the 30-day forecast ---------- */
+const BURN_CHART_DAYS = 14;
+function burnOn(date) {
+  const w = currentWeight();
+  const ss = db.sessions.filter((s) => s.date === date);
+  const walk = Math.round(dayOf(date).km * WALK_KCAL_PER_KG_KM * w);
+  return { train: ss.reduce((sum, s) => sum + s.kcal, 0), walk, net: ss.reduce((sum, s) => sum + netWorkoutKcal(s.kcal, s.minutes, w), 0) + walk };
+}
+/** Up to the last 7 days, never before the start date. */
+function recentDates() {
+  const t = today();
+  const since = db.startDate && db.startDate <= t ? daysBetween(db.startDate, t) + 1 : 1;
+  return Array.from({ length: Math.min(7, since) }, (_, i) => addDays(t, -i));
+}
 /** Net kcal a day from workouts and walks over the given dates. */
 function activityPerDay(dates) {
-  const w = currentWeight();
-  const work = db.sessions.filter((s) => dates.includes(s.date)).reduce((sum, s) => sum + netWorkoutKcal(s.kcal, s.minutes, w), 0);
-  const walk = dates.reduce((sum, d) => sum + dayOf(d).km, 0) * WALK_KCAL_PER_KG_KM * w;
-  return Math.round((work + walk) / dates.length);
+  return Math.round(dates.reduce((sum, d) => sum + burnOn(d).net, 0) / dates.length);
 }
 /** Kcal a day if the plan is followed: the weekly cap of full workouts plus the walking norm. */
 function plannedActivity() {
@@ -284,68 +302,24 @@ function plannedActivity() {
   const walk = walkNorm(weekIndex(db.startDate, t)) * WALK_KCAL_PER_KG_KM * currentWeight();
   return Math.round((plan.cap * workout) / 7 + walk);
 }
-function openMonth() {
+function editProfile(then) {
+  askProfile(db.profile, (profile) => { commit({ ...db, profile }); if (then) then(); });
+}
+function openDynamics() {
+  if (!isProfileComplete(db.profile)) { editProfile(openDynamics); return; }
   const t = today();
-  const since = db.startDate && db.startDate <= t ? daysBetween(db.startDate, t) + 1 : 1;
-  const week = Array.from({ length: Math.min(7, since) }, (_, i) => addDays(t, -i));
-  monthSheet({
-    profile: db.profile, intake: db.intake, weight: currentWeight(),
-    activity: { today: activityPerDay([t]), week: activityPerDay(week), plan: plannedActivity() },
-    onSave: ({ profile, intake }) => commit({ ...db, profile, intake })
+  const days = Array.from({ length: BURN_CHART_DAYS }, (_, i) => addDays(t, i - BURN_CHART_DAYS + 1)).map((d) => {
+    const { train, walk } = burnOn(d);
+    return { label: d === t ? "сег" : String(Number(d.slice(8))), train, walk, today: d === t };
   });
-}
-
-/* ---------- «Что я получу»: honest forecast ---------- */
-// Realistic fat loss: 0.5 kg a week up to ~0.8% of body weight (with ~500 kcal deficit from food).
-const LOSS_PER_WEEK_MIN = 0.5;
-const LOSS_PER_WEEK_SHARE_MAX = 0.008;
-const MILESTONES = [
-  { weeks: 2, title: "Через 2 недели", items: [
-    "Техника на автомате, голос ведёт, на экран смотреть почти не нужно.",
-    "Сила уже растёт: первые недели тело учится лучше включать мышцы (нервная адаптация), поэтому прогресс быстрый.",
-    "Утром спина гнётся легче, меньше скованности после сна."
-  ] },
-  { weeks: 4, title: "Через 1 месяц", items: [
-    "Отжиманий и приседаний на 20–30% больше, чем в первый день. Уровень в приложении поднимется сам.",
-    "Боль в спине по утрам у большинства заметно слабее: упражнения считаются главным лечением хронической боли в пояснице (Cochrane, 2021).",
-    "Лестница и прогулки даются легче."
-  ] },
-  { weeks: 13, title: "Через 3 месяца", items: [
-    "Мышцы видно: заметный рост мышц начинается через 6–12 недель регулярных тренировок.",
-    "Талия меньше, примерно на 1 см за каждый сброшенный килограмм (грубая оценка).",
-    "Шея крепче, голова меньше уходит вперёд, осанка ровнее (Falla, 2007; Ylinen, 2003).",
-    "Выносливость выше примерно на 10–15%: пульс быстрее успокаивается."
-  ] },
-  { weeks: 26, title: "Через 6 месяцев", items: [
-    "Вес близко к цели, лицо и шея суше: второй подбородок уходит вместе с общим жиром.",
-    "Спортивный силуэт: плечи, грудь, ноги в тонусе. Отжиматься 20+ раз подряд реально.",
-    "Сильные мышцы и ходьба снижают риск болезней сердца и диабета: это доказано для любого возраста (ВОЗ, 2020)."
-  ] }
-];
-
-function lossRange(weeks) {
-  const w = currentWeight();
-  const lo = Math.min(db.goalLoss, weeks * LOSS_PER_WEEK_MIN);
-  const hi = Math.min(db.goalLoss, weeks * Math.max(LOSS_PER_WEEK_MIN, w * LOSS_PER_WEEK_SHARE_MAX));
-  return [lo, hi];
-}
-
-function resultsSheet() {
-  const start = db.startDate || today();
-  const cards = MILESTONES.map((m) => {
-    const [lo, hi] = lossRange(m.weeks);
-    const d = new Date(addDays(start, m.weeks * 7) + "T12:00:00");
-    const kg = Math.abs(hi - lo) < 0.5 ? `−${fmt1(hi)} кг` : `−${fmt1(lo)}…${fmt1(hi)} кг`;
-    return `<section class="mile"><header><b>${esc(m.title)}</b><span>${d.getDate()} ${MONTHS[d.getMonth()]}</span></header>
-      <p class="mile-kg">${kg}<small>≈ ${fmt1(db.startWeight - hi)}–${fmt1(db.startWeight - lo)} кг на весах</small></p>
-      <ul>${m.items.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></section>`;
-  }).join("");
-  const body = openSheet(`<h3 class="sheet-title">Что вы получите</h3>
-    <p class="muted">Прогноз от старта ${esc(dateTitle(start))}, если делать 3–4 тренировки в неделю, ходить по норме и есть примерно на 500 ккал меньше, чем тратите.</p>
-    ${cards}
-    <p class="homeline">Честно: вес на 70–80% зависит от питания. Тренировки без питания дают силу, форму и здоровую спину, но вес уходит в 2–3 раза медленнее.</p>
-    <div class="sheet-foot"><button type="button" class="btn primary big" data-close>Понятно</button></div>`);
-  body.querySelector("[data-close]").addEventListener("click", closeSheet);
+  dynamicsSheet({
+    profile: db.profile, intake: db.intake, weight: currentWeight(), days,
+    activity: { week: activityPerDay(recentDates()), plan: plannedActivity() },
+    avgBurn: Math.round(recentDates().reduce((sum, d) => sum + burnOn(d).train + burnOn(d).walk, 0) / recentDates().length),
+    walkKcalPerKm: WALK_KCAL_PER_KG_KM * currentWeight(),
+    onSave: ({ intake }) => { if (intake !== db.intake) commit({ ...db, intake }); },
+    onEditProfile: () => editProfile(openDynamics)
+  });
 }
 
 function renderToday() {
@@ -363,7 +337,7 @@ function renderToday() {
     ${weightCard()}
     ${markTiles(week)}
     ${progressBlock()}
-    <div class="alts">${altRow("data-month", "Сколько сброшу за месяц", "по вашей еде и тренировкам")}${altRow("data-results", "Что я получу через 1, 3 и 6 месяцев", "прогноз веса, силы, спины и шеи")}</div>
+    <div class="alts">${altRow("data-dyn", "Динамика: калории и вес", "графики и прогноз на месяц")}${altRow("data-results", "Что я получу через 1, 3 и 6 месяцев", "прогноз веса, силы, спины и шеи")}</div>
     <button type="button" class="btn link safety" data-goto-safety>Когда нельзя тренироваться</button>`;
 }
 
@@ -604,8 +578,8 @@ function onTodayClick(e) {
   if (el.dataset.start) { closeSheet(); launch(el.dataset.start, el.dataset.type || nextSession(db, today()).type, { early: el.hasAttribute("data-early") }); return; }
   if (el.hasAttribute("data-walk")) { closeSheet(); walkSheet(); return; }
   if (el.hasAttribute("data-other")) { otherSheet(); return; }
-  if (el.hasAttribute("data-results")) { resultsSheet(); return; }
-  if (el.hasAttribute("data-month")) { openMonth(); return; }
+  if (el.hasAttribute("data-results")) { resultsSheet({ weight: currentWeight(), startWeight: db.startWeight, goalLoss: db.goalLoss, startDate: db.startDate || today(), startTitle: dateTitle(db.startDate || today()) }); return; }
+  if (el.hasAttribute("data-dyn")) { openDynamics(); return; }
   if (el.dataset.km) { addKm(Number(el.dataset.km)); return; }
   if (el.dataset.info) { infoSheet(el.dataset.info, el.dataset.type || nextSession(db, today()).type); return; }
   if (el.dataset.toggle) { closeSheet(); const k = el.dataset.toggle; setDay(today(), { [k]: !dayOf(today())[k] }); return; }

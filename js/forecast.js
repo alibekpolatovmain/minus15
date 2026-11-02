@@ -29,3 +29,14 @@ export function netWorkoutKcal(kcal, minutes, weight) {
 
 const within = (v, [lo, hi]) => Number.isFinite(v) && v >= lo && v <= hi;
 export const isProfileComplete = (p) => within(p.height, HEIGHT_CM) && within(p.age, AGE_Y);
+
+export const MONTH_DAYS = 30;
+
+/** Intake to forecast with: the user's own number, or «as usual» = what the body needs, since the weight was stable before. */
+export const baseIntake = (profile, intake) => intake ?? dailyNeed(profile);
+
+/** Kg gained (+) or lost (−) in 30 days at this intake and daily movement. */
+export function monthChange({ profile, intake, activity }) {
+  const ws = projectWeights({ profile, intake: baseIntake(profile, intake), activity, days: MONTH_DAYS });
+  return ws[MONTH_DAYS] - profile.weight;
+}
