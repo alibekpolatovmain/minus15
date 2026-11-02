@@ -20,8 +20,9 @@ export function weightLineChart(series, xLabels, height = 170) {
   const [lo, hi] = niceRange(series.flatMap((s) => s.values), 1.5);
   const x = (i) => PAD.l + (i / days) * (W - PAD.l - PAD.r);
   const y = (v) => PAD.t + ((hi - v) / (hi - lo)) * (height - PAD.t - PAD.b);
-  const ticks = [hi - 0.2, (hi + lo) / 2, lo + 0.2];
-  const grid = ticks.map((v) => `<line class="grid" x1="${PAD.l}" x2="${W - PAD.r}" y1="${y(v)}" y2="${y(v)}"/><text class="tick" x="${PAD.l - 6}" y="${y(v) + 4}" text-anchor="end">${fmt1(v)}</text>`).join("");
+  // No value axis: only today's weight is labelled, the hero number already gives the end.
+  const start = series[0].values[0];
+  const grid = `<line class="grid" x1="${PAD.l}" x2="${W - PAD.r}" y1="${height - PAD.b}" y2="${height - PAD.b}"/><text class="tick" x="${PAD.l - 6}" y="${y(start) + 4}" text-anchor="end">${fmt1(start)}</text>`;
   const xs = xLabels.map(([i, t], n) => `<text class="tick" x="${x(i)}" y="${height - 6}" text-anchor="${n === 0 ? "start" : n === xLabels.length - 1 ? "end" : "middle"}">${t}</text>`).join("");
   const lines = series.map((s) => {
     const pts = s.values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");

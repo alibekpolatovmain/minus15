@@ -133,12 +133,17 @@ function saveWeight(kg) {
 }
 
 /* ---------- «Сегодня» ---------- */
-const altRow = (attrs, title, sub) => `<button type="button" class="btn alt" ${attrs}><b>${esc(title)}</b><small>${esc(sub)}</small></button>`;
+const altRow = (attrs, title, sub = "") => `<button type="button" class="btn alt" ${attrs}><b>${esc(title)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</button>`;
 // Secondary choices sit in one quiet list under the main card, so «Начать» is the only loud button.
-const altsHtml = (rows = []) => `<div class="alts">${rows.join("")}${altRow("data-other", "Другая тренировка", "выбрать самому")}</div>`;
+const altsHtml = (rows = []) => `<div class="alts">${rows.join("")}${altRow("data-other", "Другая тренировка")}</div>`;
 
+// One row: four exercises and «+N»; the full list sits behind «?».
+const THUMBS_SHOWN = 4;
 function thumbs(session) {
-  return `<div class="thumbs">${sessionExercises(session).map((k) => `<span>${frameHtml(k, 0, session.level)}</span>`).join("")}</div>`;
+  const keys = sessionExercises(session);
+  const shown = keys.length > THUMBS_SHOWN + 1 ? keys.slice(0, THUMBS_SHOWN) : keys;
+  const more = keys.length - shown.length;
+  return `<div class="thumbs">${shown.map((k) => `<span>${frameHtml(k, 0, session.level)}</span>`).join("")}${more ? `<span class="more">+${more}</span>` : ""}</div>`;
 }
 
 function hardCard(plan) {
@@ -165,7 +170,7 @@ function hardCard(plan) {
 function lightCard(plan) {
   if (plan.lightToday) {
     return `<article class="card main ok"><h2>Мягкий день сделан ✓</h2>
-      <p class="meta">Сегодня восстановление. Добавьте прогулку, если есть время.</p>
+      <p class="meta">Можно добавить прогулку.</p>
       <button type="button" class="btn primary huge" data-walk>Прогулка</button></article>
     ${altsHtml()}`;
   }
@@ -173,11 +178,11 @@ function lightCard(plan) {
   return `<article class="card main soft">
     <button type="button" class="info-btn" data-info="light" aria-label="Что в этой тренировке">?</button>
     <h2>Спина и шея</h2>
-    <p class="meta">Сегодня восстановление · ${minLabel(s)} · <b>≈${kcalOf(s)} ккал</b></p>
+    <p class="meta">${esc(plan.reason || "Мягкий день")} · ${minLabel(s)} · <b>≈${kcalOf(s)} ккал</b></p>
     ${thumbs(s)}
     <button type="button" class="btn primary huge" data-start="light">Начать</button>
   </article>
-  ${altsHtml([altRow("data-walk", "Прогулка вместо тренировки", "отметить километры")])}`;
+  ${altsHtml()}`;
 }
 
 function doneCard(plan) {
@@ -197,7 +202,7 @@ function routineTile(kind, done, title, sub) {
     ? `<button type="button" class="btn small done" data-toggle="${kind}">Сделано ✓</button>`
     : `<button type="button" class="btn small" data-start="${kind}">Начать</button>`;
   return `<div class="tile ${done ? "on" : ""}">
-      <button type="button" class="tile-main" data-info="${kind}"><b>${esc(title)} <span class="q">?</span></b><span>${esc(sub)}</span></button>
+      <button type="button" class="tile-main" data-info="${kind}"><b>${esc(title)}</b><span>${esc(sub)}</span></button>
       <div class="tile-actions">${action}</div>
     </div>`;
 }
@@ -206,7 +211,7 @@ function officeTile(count) {
   const s = planFor("office", null, {});
   const done = count >= OFFICE_GOAL;
   return `<div class="tile ${done ? "on" : ""}">
-      <button type="button" class="tile-main" data-info="office"><b>Офис <span class="q">?</span></b><span>раз в день, стоя и сидя · ${minLabel(s)} · ≈${kcalOf(s)} ккал</span></button>
+      <button type="button" class="tile-main" data-info="office"><b>Офис</b><span>${minLabel(s)}, раз в день</span></button>
       <div class="tile-actions"><button type="button" class="btn small ${done ? "done" : ""}" data-start="office">${done ? "Сделано ✓" : "Начать"}</button></div>
     </div>`;
 }
@@ -215,17 +220,16 @@ function markTiles(week) {
   const d = dayOf(today());
   const norm = walkNorm(week);
   return `<h3 class="section-title">Отметить сегодня</h3>
-  ${todayBurn()}
   <div class="tiles">
     <div class="tile">
-      <button type="button" class="tile-main" data-walk><b>Ходьба ›</b><span>${fmtKm(d.km)} из ${norm} км · ≈${Math.round(d.km * WALK_KCAL_PER_KG_KM * currentWeight())} ккал</span></button>
-      <div class="tile-actions"><button type="button" class="btn small" data-km="1">+1 км</button><button type="button" class="btn small" data-km="2">+2 км</button></div>
+      <button type="button" class="tile-main" data-walk><b>Ходьба</b><span>${fmtKm(d.km)} из ${norm} км</span></button>
+      <div class="tile-actions"><button type="button" class="btn small" data-km="1">+1 км</button></div>
     </div>
-    ${routineTile("morning", d.morning, "Утро", `комплекс для спины после сна · ${minLabel(planFor("morning", null, {}))} · ≈${kcalOf(planFor("morning", null, {}))} ккал`)}
+    ${routineTile("morning", d.morning, "Утро", minLabel(planFor("morning", null, {})))}
     ${officeTile(d.office || 0)}
-    ${routineTile("chin", d.chin, "Шея и подбородок", `от второго подбородка · ${minLabel(planFor("chin", null, {}))} · ≈${kcalOf(planFor("chin", null, {}))} ккал`)}
+    ${routineTile("chin", d.chin, "Шея и подбородок", minLabel(planFor("chin", null, {})))}
     <div class="tile ${d.cold ? "on" : ""}">
-      <div class="tile-main"><b>Холодный душ</b><span>30–90 секунд в конце</span></div>
+      <div class="tile-main"><b>Холодный душ</b><span>30–90 секунд</span></div>
       <div class="tile-actions"><button type="button" class="btn small ${d.cold ? "done" : ""}" data-toggle="cold">${d.cold ? "Сделано ✓" : "Готово"}</button></div>
     </div>
   </div>`;
@@ -246,8 +250,8 @@ function weightCard() {
 function progressBlock() {
   const total = db.sessions.filter((s) => !s.partial).length;
   const sorted = [...db.weights].sort((a, b) => (a.date < b.date ? -1 : 1));
-  const count = total ? `Тренировок всего: <b>${total}</b>` : "";
-  if (sorted.length < 2) return count ? `<p class="progress-line">${count}</p>` : "";
+  const count = total ? `${total} ${plural(total, "тренировка", "тренировки", "тренировок")}` : "";
+  if (sorted.length < 2) return "";
   const now = sorted[sorted.length - 1].kg;
   const lost = db.startWeight - now;
   const pct = Math.max(0, Math.min(100, (lost / db.goalLoss) * 100));
@@ -255,26 +259,27 @@ function progressBlock() {
   return `<div class="progress">
     <div class="progress-num"><b>${label}</b> из ${db.goalLoss}</div>
     <div class="bar"><i style="width:${pct}%"></i></div>
-    <p class="progress-line">Сейчас ${fmt1(now)} кг, старт ${fmt1(db.startWeight)} кг${count ? " · " + count : ""}</p>
+    <p class="progress-line">Сейчас ${fmt1(now)} кг, старт ${fmt1(db.startWeight)}${count ? " · " + count : ""}</p>
   </div>`;
 }
 
 function todayBurn() {
   const { train, walk } = burnOn(today());
   const parts = [train ? `тренировки ${train}` : "", walk ? `ходьба ${walk}` : ""].filter(Boolean).join(" · ");
-  return `<button type="button" class="burn" data-dyn><span>Сожжено сегодня</span><b>${train + walk} ккал</b><small>${parts || "пока 0: начните с тренировки или прогулки"}</small>${paceLine()}</button>`;
+  return `<button type="button" class="burn" data-dyn><span>Сожжено сегодня</span><b class="${train + walk ? "" : "zero"}">${train + walk} ккал</b>${parts ? `<small>${parts}</small>` : ""}${paceLine()}</button>`;
 }
 
-/** «Через месяц в таком темпе ≈94,4 кг (−0,6)» under today's calories. */
+/** «Через месяц ≈94,4 кг −0,6 кг» at the pace of the last 7 days. */
 function paceLine() {
   const weight = currentWeight();
   const kg = monthChange({ profile: bodyFor(db.profile, weight), intake: db.intake, activity: activityPerDay(recentDates()) });
-  const delta = kg <= -0.05 ? `−${fmt1(-kg)} кг` : kg >= 0.05 ? `+${fmt1(kg)} кг` : "пока без изменений";
-  return `<span class="burn-pace"><span>Вес через месяц</span><b>≈${fmt1(weight + kg)} кг</b><span>в таком темпе</span><em>${delta} ›</em></span>`;
+  const delta = kg <= -0.05 ? ` <em>−${fmt1(-kg)}</em>` : kg >= 0.05 ? ` <em class="up">+${fmt1(kg)}</em>` : "";
+  return `<span class="burn-pace"><span>Через месяц</span><b>≈${fmt1(weight + kg)} кг${delta} ›</b></span>`;
 }
 
 /* ---------- «Динамика»: calories by day and the 30-day forecast ---------- */
-const BURN_CHART_DAYS = 14;
+// Bars from the start date: at least a week so one day is not one fat bar, at most two weeks.
+const BURN_CHART_DAYS = [7, 14];
 function burnOn(date) {
   const w = currentWeight();
   const ss = db.sessions.filter((s) => s.date === date);
@@ -300,12 +305,18 @@ function plannedActivity() {
   const walk = walkNorm(weekIndex(db.startDate, t)) * WALK_KCAL_PER_KG_KM * currentWeight();
   return Math.round((plan.cap * workout) / 7 + walk);
 }
+function openResults() {
+  const start = db.startDate || today();
+  resultsSheet({ weight: currentWeight(), startWeight: db.startWeight, goalLoss: db.goalLoss, startDate: start, startTitle: dateTitle(start), sex: db.profile.sex });
+}
 function editProfile(then) {
   askProfile(db.profile, (profile) => { commit({ ...db, profile }); if (then) then(); });
 }
 function openDynamics() {
   const t = today();
-  const days = Array.from({ length: BURN_CHART_DAYS }, (_, i) => addDays(t, i - BURN_CHART_DAYS + 1)).map((d) => {
+  const since = db.startDate && db.startDate <= t ? daysBetween(db.startDate, t) + 1 : 1;
+  const span = Math.min(BURN_CHART_DAYS[1], Math.max(BURN_CHART_DAYS[0], since));
+  const days = Array.from({ length: span }, (_, i) => addDays(t, i - span + 1)).map((d) => {
     const { train, walk } = burnOn(d);
     return { label: d === t ? "сег" : String(Number(d.slice(8))), train, walk, today: d === t };
   });
@@ -315,7 +326,8 @@ function openDynamics() {
     avgBurn: Math.round(recentDates().reduce((sum, d) => sum + burnOn(d).train + burnOn(d).walk, 0) / recentDates().length),
     walkKcalPerKm: WALK_KCAL_PER_KG_KM * currentWeight(),
     onSave: ({ intake }) => { if (intake !== db.intake) commit({ ...db, intake }); },
-    onEditProfile: () => editProfile(openDynamics)
+    onEditProfile: () => editProfile(openDynamics),
+    onLongTerm: openResults
   });
 }
 
@@ -333,8 +345,9 @@ function renderToday() {
     ${card}
     ${weightCard()}
     ${markTiles(week)}
+    ${todayBurn()}
     ${progressBlock()}
-    <div class="alts">${altRow("data-dyn", "Динамика: калории и вес", "графики и прогноз на месяц")}${altRow("data-results", "Что я получу через 1, 3 и 6 месяцев", "прогноз веса, силы, спины и шеи")}</div>
+    <div class="alts">${altRow("data-results", "Что будет через 1, 3 и 6 месяцев")}</div>
     <button type="button" class="btn link safety" data-goto-safety>Когда нельзя тренироваться</button>`;
 }
 
@@ -575,7 +588,7 @@ function onTodayClick(e) {
   if (el.dataset.start) { closeSheet(); launch(el.dataset.start, el.dataset.type || nextSession(db, today()).type, { early: el.hasAttribute("data-early") }); return; }
   if (el.hasAttribute("data-walk")) { closeSheet(); walkSheet(); return; }
   if (el.hasAttribute("data-other")) { otherSheet(); return; }
-  if (el.hasAttribute("data-results")) { resultsSheet({ weight: currentWeight(), startWeight: db.startWeight, goalLoss: db.goalLoss, startDate: db.startDate || today(), startTitle: dateTitle(db.startDate || today()) }); return; }
+  if (el.hasAttribute("data-results")) { openResults(); return; }
   if (el.hasAttribute("data-dyn")) { openDynamics(); return; }
   if (el.dataset.km) { addKm(Number(el.dataset.km)); return; }
   if (el.dataset.info) { infoSheet(el.dataset.info, el.dataset.type || nextSession(db, today()).type); return; }
@@ -596,6 +609,11 @@ function stripHtml() {
   });
   return `<div class="strip">${cells.join("")}</div>
     <p class="legend"><i class="hard"></i>силовая <i class="soft"></i>мягкая <i class="walk"></i>прогулка</p>`;
+}
+
+function diaryCount() {
+  const n = db.sessions.filter((s) => !s.partial).length;
+  return `${n} ${plural(n, "тренировка", "тренировки", "тренировок")}`;
 }
 
 function weekTiles() {
@@ -651,7 +669,7 @@ function dayCards() {
 }
 
 function renderDiary() {
-  $("screen-diary").innerHTML = `<header class="large-title"><h1>Дневник</h1><p>Последние 7 дней</p></header>
+  $("screen-diary").innerHTML = `<header class="large-title"><h1>Дневник</h1><p>Последние 7 дней · всего ${diaryCount()}</p></header>
     ${stripHtml()}${weekTiles()}
     <h3 class="section-title">Вес</h3>${weightChart()}
     <button type="button" class="btn" data-weight>Записать вес</button>

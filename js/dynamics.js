@@ -53,21 +53,6 @@ export function askProfile(profile, onSave) {
   });
 }
 
-/* ---------- what goes first: honest stages ---------- */
-// Water with glycogen first (≈3 g per g), visceral fat drops early with exercise and a deficit, belly fat in men and hips in women go last.
-const STAGES = [
-  { when: "Первая неделя", title: "Вода", text: "Весы быстро показывают −1…2 кг: уходит вода и запас углеводов в мышцах. Это ещё не жир, поэтому потом темп замедлится." },
-  { when: "2–4 недели", title: "Внутренний жир", text: "Начинает уходить жир, и одним из первых жир вокруг органов. В зеркале пока мало видно, но для сердца, давления и сахара это главный выигрыш." },
-  { when: "1–3 месяца", title: "Лицо, шея, талия", text: "Уходит подкожный жир: лицо и шея суше, ремень на дырку меньше. Примерно 1 см талии на каждый килограмм." },
-  { when: "3 месяца и дольше", title: { m: "Низ живота и бока", f: "Бёдра и ягодицы" }, text: "Эти места уходят последними, у всех. Убрать жир только с живота упражнениями нельзя: он уходит со всего тела." }
-];
-const MUSCLE_NOTE = "Мышцы при этом не уходят, если тренироваться и есть белок. Поэтому бывает, что вес стоит, а талия уменьшается: это нормально, смотрите на ремень, не только на весы.";
-
-function stagesHtml(sex) {
-  return `<ol class="stages">${STAGES.map((st) => `<li><small>${esc(st.when)}</small><b>${esc(typeof st.title === "string" ? st.title : st.title[sex])}</b><p>${esc(st.text)}</p></li>`).join("")}</ol>
-    <p class="muted">${esc(MUSCLE_NOTE)}</p>`;
-}
-
 /* ---------- the dynamics screen ---------- */
 function scenarioOf(state, ctx) {
   const extra = (state.on.walk ? ctx.walkKcal : 0) + (state.on.plan ? ctx.planGain : 0);
@@ -86,9 +71,9 @@ function heroHtml(state, ctx) {
   const legend = changed
     ? `<p class="dyn-legend"><span><i class="k-now"></i>как сейчас: ${fmt1(now[MONTH_DAYS])} кг</span><span><i class="k-plan"></i>с изменениями: ${fmt1(end)} кг</span></p>`
     : "";
-  return `<p class="dyn-when">Через 30 дней, ${dateAfter(MONTH_DAYS)}</p>
+  return `<p class="dyn-when">Через 30 дней, ${dateAfter(MONTH_DAYS)} · сейчас ${fmt1(ctx.weight)} кг</p>
     <p class="dyn-end"><b>${fmt1(end)} кг</b><em class="${end > ctx.weight ? "up" : ""}">${signed(end - ctx.weight)} кг</em></p>
-    ${weightLineChart(series, [[0, "сегодня"], [14, "2 нед."], [MONTH_DAYS, dateAfter(MONTH_DAYS)]])}
+    ${weightLineChart(series, [[0, "сегодня"], [MONTH_DAYS, dateAfter(MONTH_DAYS)]])}
     ${legend}${warningHtml(scenarioOf(state, ctx), ctx)}`;
 }
 
@@ -105,23 +90,24 @@ function whatIfHtml(state, ctx) {
   const row = (key, title, sub) => `<button type="button" class="wi" data-wi="${key}" aria-pressed="${state.on[key] ? "true" : "false"}">
       <span class="wi-check" aria-hidden="true"></span><span class="wi-text"><b>${esc(title)}</b><small>${esc(sub)}</small></span><em>${signed(gain(key))} кг</em></button>`;
   return [
-    row("walk", `+${EXTRA_WALK_KM} км ходьбы в день`, `≈${EXTRA_WALK_KM * WALK_MIN_PER_KM} минут, +${kcal(ctx.walkKcal)} ккал`),
-    ctx.planGain >= MIN_PLAN_GAIN ? row("plan", "Все тренировки и ходьба по плану", `+${kcal(ctx.planGain)} ккал в день к нынешнему`) : "",
-    row("food", `Есть на ${FOOD_CUT} ккал меньше`, "без сладких напитков, выпечки и перекусов")
+    row("walk", `+${EXTRA_WALK_KM} км ходьбы в день`, `≈${EXTRA_WALK_KM * WALK_MIN_PER_KM} минут`),
+    ctx.planGain >= MIN_PLAN_GAIN ? row("plan", "Все тренировки по плану", `+${kcal(ctx.planGain)} ккал в день`) : "",
+    row("food", `Есть на ${FOOD_CUT} ккал меньше`, "без сладкого и перекусов")
   ].join("");
 }
 
 function foodHint(state, ctx) {
-  const usual = kcal(dailyNeed(ctx.body));
+  const usual = kcal(Math.round(dailyNeed(ctx.body) / 10) * 10);
   return state.intake == null
-    ? `Сейчас считаю «как обычно»: ≈${usual} ккал. Если вес последние месяцы стоял на месте, вы едите примерно столько.`
+    ? `Пока считаю «как обычно»: ≈${usual} ккал: столько ест человек, у которого вес стоит на месте.`
     : `Ваш организм тратит ≈${usual} ккал без тренировок.`;
 }
 
 /**
  * ctx.profile {sex, height, age}, ctx.intake (null = as usual), ctx.weight kg,
  * ctx.days [{label, train, walk, today}] for the bar chart, ctx.activity {week, plan} net kcal a day,
- * ctx.avgBurn gross kcal a day over the same days, ctx.walkKcalPerKm, ctx.onSave({intake}) on close, ctx.onEditProfile().
+ * ctx.avgBurn gross kcal a day over the same days, ctx.walkKcalPerKm, ctx.onSave({intake}) on close,
+ * ctx.onEditProfile(), ctx.onLongTerm() opens «Что будет через 1, 3 и 6 месяцев».
  */
 export function dynamicsSheet(input) {
   const ctx = {
@@ -133,36 +119,37 @@ export function dynamicsSheet(input) {
   let state = { intake: input.intake, on: {} };
   const { avgBurn } = input;
   const sliderValue = () => snap(baseIntake(ctx.body, state.intake), INTAKE_RANGE);
+  const intakeLabel = () => kcal(state.intake ?? Math.round(baseIntake(ctx.body, null) / 10) * 10);
+  const profileLine = isProfileComplete(ctx.profile)
+    ? `${ctx.profile.height} см · ${ctx.profile.age} лет · ${ctx.profile.sex === "f" ? "женщина" : "мужчина"} · <button type="button" class="inline-link" data-profile>изменить</button>`
+    : `Рост и возраст не указаны · <button type="button" class="inline-link" data-profile>указать</button>`;
   const body = openSheet(`<h3 class="sheet-title">Динамика</h3>
-    <p class="muted">Сейчас ${fmt1(ctx.weight)} кг. Прогноз в темпе последних 7 дней: тренировки и ходьба ≈${kcal(ctx.activity.week)} ккал в день сверх обычного.</p>
     <section class="dyn-card" data-out="hero">${heroHtml(state, ctx)}</section>
     <p class="list-group">Что если…</p>
-    <div class="wi-list" data-out="whatif">${whatIfHtml(state, ctx)}</div>
-    <p class="list-group">Что будет уходить</p>
-    ${stagesHtml(ctx.profile.sex)}
-    <p class="list-group">Сжигаю каждый день</p>
+    <div class="wi-list">
+      <div data-out="whatif">${whatIfHtml(state, ctx)}</div>
+      <details class="wi-food"${state.intake == null ? "" : " open"}><summary>Указать, сколько я ем</summary>
+        <p class="month-label">Ем в день <b data-out="intake">${intakeLabel()} ккал</b></p>
+        <input class="range" type="range" data-range="intake" min="${INTAKE_RANGE[0]}" max="${INTAKE_RANGE[1]}" step="${INTAKE_RANGE[2]}" value="${sliderValue()}" aria-label="Сколько ккал в день я ем">
+        <p class="muted" data-out="food">${foodHint(state, ctx)}</p>
+        <p class="muted">${profileLine}</p>
+        <button type="button" class="btn link" data-usual>Считать «как обычно»</button>
+      </details>
+    </div>
+    <p class="list-group">По дням, ккал</p>
     <section class="dyn-card">
       ${burnBarChart(ctx.days, avgBurn)}
-      <p class="dyn-legend"><span><i class="k-train"></i>тренировки</span><span><i class="k-walk"></i>ходьба</span><span><i class="k-avg"></i>в среднем за 7 дней: ${kcal(avgBurn)} ккал</span></p>
+      <p class="dyn-legend"><span><i class="k-train"></i>тренировки</span><span><i class="k-walk"></i>ходьба</span><span><i class="k-avg"></i>среднее</span></p>
     </section>
-    <details class="why dyn-food"${state.intake == null ? "" : " open"}><summary>Я знаю, сколько ем в день</summary>
-      <p class="month-label">Ем в день <b data-out="intake">${kcal(sliderValue())} ккал</b></p>
-      <input class="range" type="range" data-range="intake" min="${INTAKE_RANGE[0]}" max="${INTAKE_RANGE[1]}" step="${INTAKE_RANGE[2]}" value="${sliderValue()}">
-      <p class="muted" data-out="food">${foodHint(state, ctx)}</p>
-      <button type="button" class="btn link" data-usual>Считать «как обычно»</button>
-    </details>
-    <p class="muted">${isProfileComplete(ctx.profile)
-      ? `Рост ${ctx.profile.height} см · ${ctx.profile.age} лет · ${ctx.profile.sex === "f" ? "женщина" : "мужчина"} · <button type="button" class="inline-link" data-profile>изменить</button>`
-      : `Рост и возраст не указаны, считаю по среднему. Нужны, только если вы считаете еду. <button type="button" class="inline-link" data-profile>Указать</button>`}</p>
-    <p class="muted">Это оценка, ошибка до 20–30%. В первую неделю весы могут показать больше: уходит вода. Взвешивайтесь раз в неделю, прогноз будет точнее.</p>
-    <div class="sheet-foot"><button type="button" class="btn primary big" data-close>Готово</button></div>`,
+    <p class="muted">Это оценка, ±20–30%. Взвешивайтесь раз в неделю.</p>
+    <div class="alts"><button type="button" class="btn alt" data-long><b>Что будет через 1, 3 и 6 месяцев</b></button></div>`,
   { onClose: () => input.onSave({ intake: state.intake }) });
 
   const out = (name) => body.querySelector(`[data-out="${name}"]`);
   const refresh = () => {
     out("hero").innerHTML = heroHtml(state, ctx);
     out("whatif").innerHTML = whatIfHtml(state, ctx);
-    out("intake").textContent = `${kcal(sliderValue())} ккал`;
+    out("intake").textContent = `${intakeLabel()} ккал`;
     out("food").textContent = foodHint(state, ctx);
     body.querySelector('[data-range="intake"]').value = sliderValue();
   };
@@ -174,7 +161,7 @@ export function dynamicsSheet(input) {
   body.addEventListener("click", (e) => {
     const el = e.target.closest("button");
     if (!el) return;
-    if (el.hasAttribute("data-close")) { closeSheet(); return; }
+    if (el.hasAttribute("data-long")) { input.onSave({ intake: state.intake }); input.onLongTerm(); return; }
     if (el.hasAttribute("data-profile")) { input.onSave({ intake: state.intake }); input.onEditProfile(); return; }
     if (el.dataset.wi) state = { ...state, on: { ...state.on, [el.dataset.wi]: !state.on[el.dataset.wi] } };
     if (el.hasAttribute("data-usual")) state = { ...state, intake: null };

@@ -116,8 +116,9 @@ export function nextSession(state, today) {
   const base = { weekIdx, cap, h7, type, params, lightToday };
 
   if (hardToday) return { ...base, status: "done", doneSession: hardToday, banner: null };
-  if (dh === 1) return { ...base, status: "light", banner: "Вчера была тренировка. Сегодня мягкий день." };
-  if (h7 >= cap) return { ...base, status: "light", banner: "Силовые на эту неделю сделаны. Сегодня мягкий день." };
+  // Light days say why in the card itself, so no banner repeats it above.
+  if (dh === 1) return { ...base, status: "light", banner: null, reason: "После вчерашней тренировки" };
+  if (h7 >= cap) return { ...base, status: "light", banner: null, reason: "Силовые на неделю сделаны" };
 
   const short = (state.hardStreak || 0) >= RULES.HARD_TO_SHORT;
   const banner = params.comeback === "long" ? "Начнём заново, без спешки."

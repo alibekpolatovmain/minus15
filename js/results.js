@@ -1,6 +1,6 @@
 // «Что я получу через 1, 3 и 6 месяцев»: honest milestones from the start date.
 import { addDays } from "./plan.js";
-import { esc, openSheet, closeSheet, fmt1, MONTHS } from "./ui.js";
+import { esc, openSheet, fmt1, MONTHS } from "./ui.js";
 
 // Realistic fat loss: 0.5 kg a week up to ~0.8% of body weight (with ~500 kcal deficit from food).
 const LOSS_PER_WEEK_MIN = 0.5;
@@ -35,7 +35,21 @@ function lossRange(weeks, w, goalLoss) {
   return [lo, hi];
 }
 
-export function resultsSheet({ weight, startWeight, goalLoss, startDate: start, startTitle }) {
+// What goes first: water with glycogen, then visceral fat; belly in men and hips in women go last.
+const STAGES = [
+  { when: "Первая неделя", title: "Вода", text: "−1…2 кг воды. Это ещё не жир." },
+  { when: "2–4 недели", title: "Жир вокруг органов", text: "Снаружи почти не видно, но сердцу и давлению легче." },
+  { when: "1–3 месяца", title: "Лицо, шея, талия", text: "Примерно 1 см талии на каждый килограмм." },
+  { when: "3 месяца и дольше", title: { m: "Низ живота и бока", f: "Бёдра и ягодицы" }, text: "Уходит последним. Убрать жир только с живота нельзя." }
+];
+const MUSCLE_NOTE = "Вес стоит, а ремень свободнее: значит, растут мышцы. Это нормально.";
+
+function stagesHtml(sex) {
+  return `<ol class="stages">${STAGES.map((st) => `<li><small>${esc(st.when)}</small><b>${esc(typeof st.title === "string" ? st.title : st.title[sex])}</b><p>${esc(st.text)}</p></li>`).join("")}</ol>
+    <p class="muted">${esc(MUSCLE_NOTE)}</p>`;
+}
+
+export function resultsSheet({ weight, startWeight, goalLoss, startDate: start, startTitle, sex }) {
   const cards = MILESTONES.map((m) => {
     const [lo, hi] = lossRange(m.weeks, weight, goalLoss);
     const d = new Date(addDays(start, m.weeks * 7) + "T12:00:00");
@@ -44,10 +58,10 @@ export function resultsSheet({ weight, startWeight, goalLoss, startDate: start, 
       <p class="mile-kg">${kg}<small>≈ ${fmt1(startWeight - hi)}–${fmt1(startWeight - lo)} кг на весах</small></p>
       <ul>${m.items.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></section>`;
   }).join("");
-  const body = openSheet(`<h3 class="sheet-title">Что вы получите</h3>
+  openSheet(`<h3 class="sheet-title">Что вы получите</h3>
     <p class="muted">Прогноз от старта ${esc(startTitle)}, если делать 3–4 тренировки в неделю, ходить по норме и есть примерно на 500 ккал меньше, чем тратите.</p>
+    <p class="list-group">Что уходит по порядку</p>
+    ${stagesHtml(sex)}
     ${cards}
-    <p class="homeline">Честно: вес на 70–80% зависит от питания. Тренировки без питания дают силу, форму и здоровую спину, но вес уходит в 2–3 раза медленнее.</p>
-    <div class="sheet-foot"><button type="button" class="btn primary big" data-close>Понятно</button></div>`);
-  body.querySelector("[data-close]").addEventListener("click", closeSheet);
+    <p class="homeline">Честно: вес на 70–80% зависит от питания. Тренировки без питания дают силу, форму и здоровую спину, но вес уходит в 2–3 раза медленнее.</p>`);
 }
