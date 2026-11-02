@@ -221,7 +221,7 @@ function markTiles(week) {
     ${routineTile("chin", d.chin, "Шея и подбородок", `от второго подбородка · ${minLabel(planFor("chin", null, {}))} · ≈${kcalOf(planFor("chin", null, {}))} ккал`)}
     <div class="tile ${d.cold ? "on" : ""}">
       <div class="tile-main"><b>Холодный душ</b><span>30–90 секунд в конце</span></div>
-      <div class="tile-actions"><button type="button" class="btn small ${d.cold ? "done" : ""}" data-toggle="cold">${d.cold ? "Сделано ✓" : "Сделал"}</button></div>
+      <div class="tile-actions"><button type="button" class="btn small ${d.cold ? "done" : ""}" data-toggle="cold">${d.cold ? "Сделано ✓" : "Готово"}</button></div>
     </div>
   </div>`;
 }
@@ -466,7 +466,7 @@ function infoSheet(kind, type) {
       <div class="info-more">${howToHtml(k, level, null, { showTitle: false })}<button type="button" class="btn link info-collapse" data-collapse>Свернуть ▲</button></div>
     </details>`).join("");
   const intro = INFO_INTRO[kind] ? `<p class="muted">${esc(INFO_INTRO[kind])}</p>` : "";
-  const extra = kind === "morning" || kind === "chin" ? `<button type="button" class="btn big" data-toggle="${kind}">${dayOf(today())[kind] ? "Снять отметку" : "Сделал без таймера"}</button>` : "";
+  const extra = kind === "morning" || kind === "chin" ? `<button type="button" class="btn big" data-toggle="${kind}">${dayOf(today())[kind] ? "Снять отметку" : "Отметить без таймера"}</button>` : "";
   const body = openSheet(`<h3 class="sheet-title">${esc(kindTitle(kind, type))}</h3>
     <p class="info-sum">${minLabel(session)} · ≈${Math.round(totals.kcal)} ккал за всю тренировку</p>
     ${intro}
@@ -722,8 +722,8 @@ function bindHelp() {
   $("backup-load").addEventListener("change", (e) => { const f = e.target.files?.[0]; if (f) restoreBackup(f); e.target.value = ""; });
   $("opt-sound").addEventListener("change", (e) => commit({ ...db, sound: e.target.checked }));
   $("opt-tempo").addEventListener("change", (e) => commit({ ...db, tempo: e.target.checked }));
-  $("help-ex").innerHTML = ["A", "B", "C"].map((t) => `<h4>${esc(WORKOUTS[t].title)}</h4>${WORKOUTS[t].list.map((k) => `<details class="ex"><summary>${esc(EXERCISES[k].name)}</summary>${howToHtml(k, db.level)}</details>`).join("")}`).join("")
-    + `<h4>Спина, шея, подбородок, стоя без пола</h4>${["birdDog", "chinTuck", "chinLift", "headLift", "neckFront", "neckSide", "clapLeg", "kneePush", "kneeElbow", "deepSquat"].map((k) => `<details class="ex"><summary>${esc(EXERCISES[k].name)}</summary>${howToHtml(k, db.level)}</details>`).join("")}`;
+  $("help-ex").innerHTML = ["A", "B", "C"].map((t) => `<h2 class="help-group">${esc(WORKOUTS[t].title)}</h2>${WORKOUTS[t].list.map((k) => `<details class="ex"><summary>${esc(EXERCISES[k].name)}</summary>${howToHtml(k, db.level)}</details>`).join("")}`).join("")
+    + `<h2 class="help-group">Спина, шея, подбородок, стоя без пола</h2>${["birdDog", "chinTuck", "chinLift", "headLift", "neckFront", "neckSide", "clapLeg", "kneePush", "kneeElbow", "deepSquat"].map((k) => `<details class="ex"><summary>${esc(EXERCISES[k].name)}</summary>${howToHtml(k, db.level)}</details>`).join("")}`;
 }
 
 /* ---------- tabs ---------- */

@@ -122,8 +122,8 @@ export function openSheet(html, { onClose } = {}) {
   fresh.className = "sheet-body";
   fresh.innerHTML = html;
   root.querySelector(".sheet-body").replaceWith(fresh);
-  root.querySelector(".sheet-panel").scrollTop = 0;
   root.hidden = false;
+  root.querySelector(".sheet-panel").scrollTop = 0;
   sheetClose = onClose || null;
   requestAnimationFrame(() => root.classList.add("open"));
   return fresh;

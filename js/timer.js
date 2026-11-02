@@ -21,6 +21,10 @@ const SIDE_QUIET_MS = 2500;
 const TEMPO_RATE = 1.15;
 const HOLD_EVERY_S = 10;
 const COUNTDOWN_FROM_S = 3;
+// «Осталось 5 секунд» near the end of work and rest, so the user does not need to look at the clock.
+const END_CUE_S = 5;
+const END_CUE_MIN_STEP_S = 15;
+const END_CUE_QUIET_MS = (END_CUE_S + 1) * 1000;
 // Warm-up moves are done slower than in the circuit.
 const WARM_TEMPO_SCALE = 1.5;
 
@@ -70,7 +74,7 @@ async function keepAwake() {
 const stepName = (step) => exName(step.ex, run.level, step.label);
 
 function progressText(step) {
-  if (step.round) return `Круг ${step.round} из ${step.rounds}`;
+  if (step.round) return `Круг ${step.round} из ${step.rounds}${step.phase !== "rest" && step.count ? ` · упр. ${step.idx + 1} из ${step.count}` : ""}`;
   if (step.phase === "prep") {
     const next = run.steps[run.i + 1];
     return next?.count ? `${next.idx + 1} из ${next.count}` : "";
@@ -102,7 +106,7 @@ function announce(step) {
 
 /** Voice guidance during the work: a repeated rhythm («вниз… вверх…») or a countdown for holds. */
 function rhythm(step, now, left) {
-  if (!run.tempoVoice || left < TEMPO_QUIET_END_MS) return;
+  if (!run.tempoVoice || left < (hasEndCue(step) ? END_CUE_QUIET_MS : TEMPO_QUIET_END_MS)) return;
   const ex = EXERCISES[step.ex];
   if (ex.tempo) {
     if (now < run.tempoAt) return;
@@ -119,6 +123,17 @@ function rhythm(step, now, left) {
   run.holdSaid = s;
   $("t-beat").textContent = `Ещё ${s} с`;
   say(`Ещё ${s} секунд`);
+}
+
+const hasEndCue = (step) => step.phase !== "prep" && step.sec >= END_CUE_MIN_STEP_S;
+
+/** One spoken heads-up five seconds before the step ends. */
+function endCue(step, s) {
+  if (run.endSaid || s !== END_CUE_S || !hasEndCue(step)) return;
+  run.endSaid = true;
+  const text = step.phase === "rest" ? "Пять секунд, приготовься" : "Осталось пять секунд";
+  $("t-beat").textContent = step.phase === "rest" ? "" : "Ещё 5 секунд";
+  say(text);
 }
 
 /* ---------- render ---------- */
@@ -168,6 +183,7 @@ function enter(i, { paused = false } = {}) {
   run.tempoAt = Date.now() + TEMPO_START_MS;
   run.holdSaid = null;
   run.lastTick = null;
+  run.endSaid = false;
   $("t-beat").textContent = "";
   render();
   if (!paused) announce(run.steps[i]);
@@ -199,6 +215,7 @@ function tick() {
     say(ex.half || "Смени сторону");
   }
   if (!PAUSE_LIKE.has(step.phase)) rhythm(step, now, left);
+  endCue(step, s);
   if (frameCount(step.ex, run.level) === 2 && !PAUSE_LIKE.has(step.phase) && now >= run.flipAt) {
     run.frame = 1 - run.frame;
     run.flipAt = now + FLIP_MS;

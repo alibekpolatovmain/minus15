@@ -132,7 +132,7 @@ button.tile-main { cursor: pointer; }
 .help[open] summary::after { transform: rotate(90deg); }
 .help > :not(summary) { margin-bottom: 14px; }
 .help p, .help li { font-size: 16px; }
-.help h4 { font-size: 15px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 14px 0 6px; }
+.help h4, .help .help-group { font-size: 15px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 14px 0 6px; }
 details.ex { border-top: 1px solid var(--line); }
 details.ex summary { min-height: 48px; display: flex; align-items: center; cursor: pointer; font-weight: 500; }
 details.ex[open] { padding-bottom: 12px; }
@@ -374,3 +374,27 @@ body:has(#sheet:not([hidden])) .toast { bottom: auto; top: calc(env(safe-area-in
 
 /* Pictograms: whatever moves (arrows, shoulder blades) is drawn in red so the motion reads at a glance. */
 .fig .fig-move { stroke: #D92D20; }
+
+/* --- design pass: timer read from the floor, visible pause, a finish worth seeing --- */
+.btn.link.t-stop { color: #FFFFFF; font-size: 17px; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
+.timer[data-phase="work"] .t-beat, .timer[data-phase="warm"] .t-beat, .timer[data-phase="flow"] .t-beat { font-size: clamp(36px, 11vw, 56px); line-height: 1.05; }
+.timer[data-phase="work"] .t-name { font-size: clamp(24px, 7vw, 32px); }
+.timer[data-phase="work"] .t-cue { font-size: 17px; opacity: 0.8; }
+.t-stats { opacity: 0.75; }
+.timer.paused .t-clock { opacity: 0.45; }
+.timer.paused .t-beat { visibility: hidden; }
+.timer.paused { background: var(--ph-prep); }
+.timer[data-phase="done"] { background: var(--ph-rest); color: #FFFFFF; }
+.t-done { align-content: center; }
+.t-done h2 { font-size: 44px; line-height: 1.1; }
+.d-ask { color: rgba(255, 255, 255, 0.9); }
+.d-nums p { background: rgba(255, 255, 255, 0.14); }
+.d-nums span { color: rgba(255, 255, 255, 0.85); }
+/* Fixed light tints: the finish screen is the same green in both themes. */
+.feel button { background: #FFFFFF; color: #0B1220; box-shadow: none; }
+.feel [data-feel="easy"] { background: #DCF3E4; }
+.feel [data-feel="hard"] { background: #FCEFD9; }
+.t-done .btn.link { color: #FFFFFF; }
+.card.main .eyebrow, .card.main h2 { padding-right: 52px; }
+.sheet .mile { background: var(--card); }
+.bodymap text { font-size: 12px; }
