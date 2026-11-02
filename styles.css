@@ -236,7 +236,7 @@ details.ex[open] { padding-bottom: 12px; }
 .segs i.cur { background: #FFFFFF; }
 .t-close { width: 48px; height: 48px; border-radius: 24px; border: 0; background: rgba(255, 255, 255, 0.18); color: #FFFFFF; font-size: 20px; cursor: pointer; }
 .timer[data-phase="done"] .t-close, .timer[data-phase="done"] .t-phase, .timer[data-phase="done"] .t-progress { visibility: hidden; }
-.t-run { display: grid; grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto auto; justify-items: center; text-align: center; gap: 6px; min-height: 0; position: relative; }
+.t-run { display: grid; grid-template-rows: auto auto auto auto auto auto minmax(0, 1fr) auto auto; justify-items: center; text-align: center; gap: 6px; min-height: 0; position: relative; }
 .t-clock { font-size: min(36vw, 22vh); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; background: none; border: 0; color: inherit; cursor: pointer; padding: 0; }
 .t-bar { width: 100%; max-width: 560px; height: 12px; border-radius: 6px; background: rgba(255, 255, 255, 0.25); overflow: hidden; }
 .t-bar i { display: block; height: 100%; width: 0; background: #FFFFFF; }
@@ -336,3 +336,38 @@ body:has(#sheet:not([hidden])) .toast { bottom: auto; top: calc(env(safe-area-in
 .settings-row { background: var(--card); border-radius: 16px; padding: 4px 16px; }
 @media (prefers-reduced-motion: reduce) { .sheet-panel { transition: none; } .btn:active { transform: none; } }
 .pair img[src$=".png"], .thumbs img[src$=".png"], .info-thumb img[src$=".png"] { object-fit: contain; background: #FFFFFF; }
+
+/* ---------- calories today ---------- */
+.burn { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 12px; background: var(--card); border-radius: 16px; padding: 12px 16px; margin-bottom: 12px; }
+.burn span { font-size: 15px; color: var(--muted); }
+.burn b { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.burn small { grid-column: 1 / -1; color: var(--muted); font-size: 14px; }
+
+/* ---------- forecast ---------- */
+.btn.alt.results { margin-top: 12px; }
+.mile { background: var(--bg); border-radius: 14px; padding: 12px 14px; margin: 10px 0; }
+.mile header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.mile header span { color: var(--muted); font-size: 14px; }
+.mile-kg { font-size: 26px; font-weight: 800; margin: 4px 0 6px; font-variant-numeric: tabular-nums; }
+.mile-kg small { display: block; font-size: 14px; font-weight: 400; color: var(--muted); }
+.mile ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 15px; line-height: 1.35; }
+
+/* ---------- muscle map ---------- */
+.muscles { display: grid; grid-template-columns: minmax(120px, 44%) 1fr; gap: 12px; align-items: center; margin: 12px 0; }
+.bodymap { width: 100%; height: auto; }
+.bodymap text { font-size: 9px; fill: var(--muted); }
+.bm-base { fill: var(--muted); opacity: 0.18; }
+.bm-off { fill: var(--muted); opacity: 0.3; }
+.bm-help { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 0.8; }
+.bm-main { fill: var(--bad); }
+.bm-legend p { margin: 0 0 6px; font-size: 15px; line-height: 1.35; }
+.bm-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: 0; }
+.bm-dot.main { background: var(--bad); }
+.bm-dot.help { background: var(--accent-soft); border: 1px solid var(--accent); }
+@media (max-width: 360px) { .muscles { grid-template-columns: 1fr; } }
+
+/* ---------- spoken rhythm word in the timer ---------- */
+/* Two lines are reserved during work so long phrases do not resize the photo on every beat. */
+.t-beat { font-size: clamp(22px, 6.5vw, 30px); font-weight: 800; line-height: 1.15; min-height: 2.3em; display: flex; align-items: center; justify-content: center; }
+.timer[data-phase="prep"] .t-beat, .timer[data-phase="rest"] .t-beat { min-height: 0; }
+.settings-row .switch + .switch { border-top: 1px solid var(--line); }

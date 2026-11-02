@@ -1,6 +1,7 @@
 // Shared view helpers: exercise media, names, bottom sheet, toast.
 import { EXERCISES, FIGURES, FIGURE_VIEWBOX, YT } from "./data.js";
 import { tierOf } from "./plan.js";
+import { bodyMapHtml } from "./bodymap.js";
 
 export const IMG = (id, n, ext = "jpg") => `img/${id}_${n}.${ext}`;
 
@@ -45,9 +46,16 @@ export function frameHtml(key, frame = 0) {
 export function pairHtml(key) {
   const ex = EXERCISES[key];
   if (ex.frames === 2) {
-    return `<div class="pair"><figure>${frameHtml(key, 0)}<figcaption>Старт</figcaption></figure><figure>${frameHtml(key, 1)}<figcaption>Финиш</figcaption></figure></div>`;
+    const [a, b] = ex.captions || ["Старт", "Финиш"];
+    return `<div class="pair"><figure>${frameHtml(key, 0)}<figcaption>${a}</figcaption></figure><figure>${frameHtml(key, 1)}<figcaption>${b}</figcaption></figure></div>${levelsHtml(ex)}`;
   }
   return `<div class="pair one"><figure>${frameHtml(key, 0)}</figure></div>`;
+}
+
+/** Easier variants of the same move, one photo each. */
+function levelsHtml(ex) {
+  if (!ex.levels) return "";
+  return `<div class="pair">${ex.levels.map(([img, cap]) => `<figure><img src="${IMG(img, 0)}" alt="${esc(cap)}" draggable="false"><figcaption>${esc(cap)}</figcaption></figure>`).join("")}</div>`;
 }
 
 export function frameCount(key) {
@@ -56,13 +64,18 @@ export function frameCount(key) {
 
 export const kcalPerMin = (key, weight) => (EXERCISES[key].met * weight) / 60;
 
-/** Lazy YouTube player: a button that turns into an embedded video on tap. */
+const secs = (v) => (Number.isFinite(v) && v > 0 ? Math.round(v) : null);
+
+/** Lazy YouTube player: a button that turns into an embedded video on tap. video = [id, label, start?, end?]. */
 export function videoHtml(key) {
   const v = EXERCISES[key].video;
   if (!v) return "";
-  const length = esc(v[1].split("·").pop().trim());
-  return `<div class="yt"><button type="button" class="yt-play" data-yt="${esc(v[0])}"><span class="yt-icon" aria-hidden="true"></span>Смотреть видео · ${length}</button></div>
-    <a class="yt-link" href="${YT(v[0])}" target="_blank" rel="noopener">Не открывается? Смотреть на YouTube</a>`;
+  const [id, label, start, end] = v;
+  const length = esc(label.split("·").pop().trim());
+  const range = `${secs(start) ? ` data-start="${secs(start)}"` : ""}${secs(end) ? ` data-end="${secs(end)}"` : ""}`;
+  const link = `${YT(id)}${secs(start) ? `&t=${secs(start)}s` : ""}`;
+  return `<div class="yt"><button type="button" class="yt-play" data-yt="${esc(id)}"${range}><span class="yt-icon" aria-hidden="true"></span>Смотреть видео · ${length}</button></div>
+    <a class="yt-link" href="${link}" target="_blank" rel="noopener">Не открывается? Смотреть на YouTube</a>`;
 }
 
 export function howToHtml(key, level, label, { showTitle = true } = {}) {
@@ -71,6 +84,7 @@ export function howToHtml(key, level, label, { showTitle = true } = {}) {
   const home = ex.home ? `<p class="homeline">${esc(ex.home)}</p>` : "";
   const title = showTitle ? `<h3 class="howto-title">${esc(exName(key, level, label))}</h3><p class="gives">${esc(ex.gives)}</p>` : "";
   return `${pairHtml(key)}${home}${title}
+    ${bodyMapHtml(ex.map)}
     <ol class="cues">${ex.cues.slice(0, 3).map((c) => `<li>${esc(c)}</li>`).join("")}</ol>
     ${stop}${videoHtml(key)}${ex.why ? `<details class="why"><summary>Почему именно это упражнение</summary><p>${esc(ex.why)}</p></details>` : ""}`;
 }
@@ -83,7 +97,8 @@ export function bindVideos() {
     const frame = document.createElement("div");
     frame.className = "yt-frame";
     const origin = encodeURIComponent(location.origin);
-    frame.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&rel=0&origin=${origin}" title="Видео упражнения" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+    const range = `${btn.dataset.start ? `&start=${Number(btn.dataset.start)}` : ""}${btn.dataset.end ? `&end=${Number(btn.dataset.end)}` : ""}`;
+    frame.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&rel=0${range}&origin=${origin}" title="Видео упражнения" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
     btn.closest(".yt").replaceWith(frame);
   });
 }

@@ -1,5 +1,5 @@
 // Scheduling rules: which session to propose today. Pure functions, no DOM, no storage.
-import { LEVELS, WORKOUTS, WARMUP, COOLDOWN, LIGHT_FLOW, MORNING_FLOW, CHIN_FLOW, STAND_WARM, STAND_LIST, STAND_SHAPE, MET, PREP_SEC, ROUND_REST_SEC, POS_CHANGE_REST_SEC, EXERCISES } from "./data.js";
+import { LEVELS, WORKOUTS, WARMUP, COOLDOWN, LIGHT_FLOW, MORNING_FLOW, CHIN_FLOW, STAND_WARM, STAND_LIST, STAND_SHAPE, MET, PREP_SEC, ROUND_REST_SEC, POS_CHANGE_REST_SEC, HEAVY_REST_SEC, EXERCISES } from "./data.js";
 
 export const RULES = {
   EASY_WEEKS: 2,          // weeks 1–2 use the low weekly cap
@@ -168,7 +168,8 @@ function circuitSteps(list, work, rest, rounds) {
       const roundBreak = i === list.length - 1;
       const nextIdx = roundBreak ? 0 : i + 1;
       const moves = EXERCISES[ex].pos !== EXERCISES[list[nextIdx]].pos;
-      const sec = roundBreak ? ROUND_REST_SEC : moves ? Math.max(rest, POS_CHANGE_REST_SEC) : rest;
+      const floor = Math.max(moves ? POS_CHANGE_REST_SEC : 0, EXERCISES[ex].heavy ? HEAVY_REST_SEC : 0);
+      const sec = roundBreak ? ROUND_REST_SEC : Math.max(rest, floor);
       steps.push({ phase: "rest", ex: list[nextIdx], sec, roundBreak, round: roundBreak ? r + 1 : r, rounds, idx: nextIdx, count: list.length });
     });
   }

@@ -173,3 +173,38 @@ test("changing between standing and floor always leaves at least 30 s, on every 
 test("the cardio circuit does not start with burpees", () => {
   assert.notEqual(WORKOUTS.C.list[0], "burpee");
 });
+
+test("after burpees, push-ups, pike push-ups and climbers the rest is at least 30 s on every level", () => {
+  for (const type of ["A", "B", "C"]) {
+    for (let level = 1; level <= 6; level += 1) {
+      const steps = buildSession(type, type, level, 4).steps;
+      steps.forEach((s, i) => {
+        if (s.phase === "rest" && EXERCISES[steps[i - 1].ex].heavy) assert.ok(s.sec >= 30, `${type}${level}: after ${steps[i - 1].ex} rest ${s.sec}`);
+      });
+    }
+  }
+});
+
+test("every timed exercise has a spoken rhythm or a countdown, so the screen is not needed", () => {
+  const kinds = [["A", "A"], ["B", "B"], ["C", "C"], ["light", null], ["morning", null], ["chin", null], ["stand", null]];
+  for (const [kind, type] of kinds) {
+    const keys = new Set(buildSession(kind, type, 2, 4).steps.filter((s) => s.phase === "work" || s.phase === "flow").map((s) => s.ex));
+    keys.forEach((k) => assert.ok(EXERCISES[k].tempo || EXERCISES[k].hold, `${kind}: ${k} has no tempo`));
+  }
+});
+
+test("every exercise in a session has a muscle map", () => {
+  const keys = new Set(["A", "B", "C"].flatMap((t) => buildSession(t, t, 2, 4).steps.map((s) => s.ex)));
+  keys.forEach((k) => { if (k !== "breathe") assert.ok(EXERCISES[k].map?.[0]?.length, `${k} has no muscle map`); });
+});
+
+test("every exercise has a short demo video: at most 90 s plays", () => {
+  for (const [key, ex] of Object.entries(EXERCISES)) {
+    if (key === "breathe") continue;
+    assert.ok(ex.video, `${key} has no video`);
+    const [, label, start = 0, end] = ex.video;
+    const [m, s] = label.split("·").pop().trim().split(":").map(Number);
+    const played = end ? end - start : m * 60 + s;
+    assert.ok(played <= 90, `${key} plays ${played} s`);
+  }
+});

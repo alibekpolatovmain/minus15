@@ -5,14 +5,10 @@ export const YT = (id) => `https://www.youtube.com/watch?v=${id}`;
 // Pictogram frames for exercises without a free photo: thick limbs, solid head, same style everywhere.
 // head: [x, y] solid head; headP: [x, y, tilt] profile head with nose; floor/mat/dashX/arrow are helpers.
 export const FIGURE_VIEWBOX = {
-  latLunge: "50 12 200 172", snowAngel: "80 0 140 192", chinTuck: "104 38 112 128", chinLift: "104 18 112 148",
+  snowAngel: "80 0 140 192", chinTuck: "104 38 112 128",
   headLift: "40 108 240 78", clapLeg: "74 12 150 172", kneeElbow: "74 12 150 172"
 };
 export const FIGURES = {
-  latLunge: [
-    { head: [150, 34], floor: true, p: "M150 52 L150 112 M150 62 L134 94 L150 104 M150 62 L166 94 L150 104 M146 112 L140 176 M154 112 L160 176" },
-    { head: [120, 58], floor: true, p: "M122 76 L132 126 M124 86 L108 108 L124 116 M124 86 L140 106 L124 116 M128 126 L96 140 L92 176 M136 126 L218 176" }
-  ],
   snowAngel: [
     { head: [150, 30], mat: true, p: "M150 48 L150 118 M150 58 L126 110 M150 58 L174 110 M146 118 L138 176 M154 118 L162 176", arrow: "M116 122 Q 84 72 116 26 M116 26 L106 36 M116 26 L124 38" },
     { head: [150, 30], mat: true, p: "M150 48 L150 118 M150 58 L120 18 M150 58 L180 18 M146 118 L138 176 M154 118 L162 176" }
@@ -20,10 +16,6 @@ export const FIGURES = {
   chinTuck: [
     { headP: [170, 74, 8], dashX: 150, p: "M150 166 L150 128 L164 98 M150 132 L158 166", arrow: "M212 50 L192 50 M199 43 L192 50 L199 57" },
     { headP: [152, 72, 0], dashX: 150, p: "M150 166 L150 128 L150 96 M150 132 L158 166" }
-  ],
-  chinLift: [
-    { headP: [152, 74, 0], p: "M150 166 L150 128 L150 98 M150 132 L158 166", arrow: "M196 76 Q 208 48 188 32 M188 32 L199 32 M188 32 L192 43" },
-    { headP: [148, 76, -38], p: "M150 166 L150 128 L150 100 M150 132 L158 166" }
   ],
   headLift: [
     { head: [236, 162], floor: true, p: "M220 166 L112 166 M112 166 L88 132 L66 176" },
@@ -45,206 +37,181 @@ const BASE_EXERCISES = {
     name: "Приседания", tiers: ["Приседания до половины", "Приседания", "Приседания с паузой внизу"],
     img: "Bodyweight_Squat", frames: 2, muscles: "Бёдра, ягодицы, кор",
     cues: ["Стопы на ширине плеч, носки чуть врозь", "Таз назад, будто садитесь на стул", "Колени смотрят туда же, куда носки"],
-    stop: "Стоп, если колено «щёлкает» с болью или уходит внутрь.",
-    video: ["j8H6X4KQQ5A", "Как правильно приседать · 2:37"]
+    stop: "Стоп, если колено «щёлкает» с болью или уходит внутрь."
   },
   lunge: {
     name: "Выпады назад", tiers: ["Выпады назад с опорой о стену", "Выпады назад", "Выпады назад с паузой внизу"],
     img: "Bodyweight_Walking_Lunge", frames: 2, muscles: "Бёдра, ягодицы, баланс",
     cues: ["Шаг назад, оба колена примерно под 90°", "Вес на пятке передней ноги", "Ноги чередовать каждый раз"],
-    stop: "Стоп, если болит колено передней ноги: сделайте шаг короче.",
-    video: ["d3xVz2ObWyg", "Выпады: техника и ошибки · 3:52"]
+    stop: "Стоп, если болит колено передней ноги: сделайте шаг короче."
   },
   bridge: {
     name: "Ягодичный мост", tiers: ["Ягодичный мост", "Ягодичный мост с паузой 2 с", "Мост на одной ноге"],
     img: "Butt_Lift_Bridge", frames: 2, muscles: "Ягодицы, задняя поверхность бедра, поясница",
     cues: ["Лёжа на спине, стопы ближе к тазу", "Поднять таз, сжать ягодицы", "Поясницу не прогибать"],
-    stop: "Стоп, если тянет поясницу: поднимайте таз ниже.",
-    video: ["ViOxNSCwSdk", "Ягодичный мост · 2:38"]
+    stop: "Стоп, если тянет поясницу: поднимайте таз ниже."
   },
   latLunge: {
     name: "Боковые выпады", tiers: ["Боковые выпады неглубоко", "Боковые выпады", "Боковые выпады с паузой внизу"],
-    figure: "latLunge", frames: 2, muscles: "Бёдра, ягодицы, внутренняя поверхность бедра", side: true,
+    img: "Lateral_Lunge", frames: 2, captions: ["В одну сторону", "В другую"], muscles: "Бёдра, ягодицы, внутренняя поверхность бедра", side: true,
     cues: ["Широкий шаг в сторону, таз назад", "Одна нога согнута, другая прямая, пятки на полу", "Вернуться и шагнуть в другую сторону"],
-    stop: "Стоп, если болит колено: шаг уже, присед мельче.",
-    video: ["NwYydl0GlIk", "Боковые выпады: техника · 0:34"]
+    stop: "Стоп, если болит колено: шаг уже, присед мельче."
   },
   calf: {
     name: "Подъёмы на носки", tiers: ["Подъёмы на носки", "Подъёмы на носки с паузой", "Подъёмы на носки на одной ноге"],
     img: "Standing_Dumbbell_Calf_Raise", frames: 2, muscles: "Икры, голеностоп", home: "На фото гантели, дома без них: просто рукой держитесь за стену.",
     cues: ["Держитесь рукой за стену", "Вверх за 1 с, вниз за 2 с", "Наверху пауза 1 с"],
-    stop: "Стоп, если сводит икру: потрясите ногой и продолжите мягче.",
-    video: ["zUShXqdXJbY", "Подъём на носки · 0:32"]
+    stop: "Стоп, если сводит икру: потрясите ногой и продолжите мягче."
   },
   pushup: {
     name: "Отжимания", tiers: ["Отжимания от стены", "Отжимания с колен", "Отжимания от пола"],
-    img: "Floor_Pushup", ext: "png", frames: 2, muscles: "Грудь, плечи, трицепс, кор", home: "На рисунке отжимания от пола (уровни 5–6). Уровни 1–2: руки в стену, 3–4: с колен.",
+    img: "Floor_Pushup", ext: "png", frames: 2, muscles: "Грудь, плечи, трицепс, кор", home: "Рисунок: отжимания от пола, это уровни 5–6. Фото: варианты полегче, у опоры (стена, подоконник) и с колен.",
+    levels: [["Pushup_Incline", "Уровни 1–2: у опоры"], ["Pushup_Knee", "Уровни 3–4: с колен"]],
     cues: ["Тело прямое от головы до пяток", "Локти под 45° к телу, не в стороны", "Опускайтесь медленно, вверх на выдохе"],
-    stop: "Стоп, если болят запястья: упор на кулаки.",
-    video: ["xdvd6KKBLqU", "5 ошибок при отжиманиях · 2:00"]
+    stop: "Стоп, если болят запястья: упор на кулаки."
   },
   snowAngel: {
     name: "Обратные снежные ангелы", tiers: ["Снежные ангелы, руки над полом", "Обратные снежные ангелы", "Снежные ангелы с паузой 2 с"],
     figure: "snowAngel", frames: 2, muscles: "Верх спины, лопатки, задняя часть плеч",
     home: "Схема: вид сверху, вы лежите на животе. Руки скользят над полом от бёдер за голову.",
     cues: ["Лёжа на животе, лоб чуть над полом", "Руки над полом: от бёдер дугой вперёд за голову и обратно", "Лопатки сведены, плечи от ушей"],
-    stop: "Стоп, если щёлкает или болит плечо: уменьшите дугу.",
-    video: ["4evK7yv66IA", "Обратные снежные ангелы · 0:28"]
+    stop: "Стоп, если щёлкает или болит плечо: уменьшите дугу."
   },
   pike: {
     name: "Пайк-отжимания", tiers: ["Пайк-удержание, таз вверх", "Пайк-отжимания неглубоко", "Пайк-отжимания"],
     img: "Pike", frames: 2, muscles: "Плечи, трицепс, верх груди",
     cues: ["Упор лёжа, таз высоко: тело как перевёрнутая V", "Сгибая локти, опустить макушку к полу между руками", "Выжать себя вверх, локти назад, не в стороны"],
-    stop: "Стоп, если давит в голову или болят плечи: просто держите позу.",
-    video: ["lSQIbKeKYTo", "Пайк-отжимания · 0:22"]
+    stop: "Стоп, если давит в голову или болят плечи: просто держите позу."
   },
   superman: {
     name: "Супермен", tiers: ["Супермен поочерёдно", "Супермен", "Супермен с паузой 3 с"],
     img: "Superman", frames: 2, muscles: "Поясница, ягодицы, задняя часть плеч",
     cues: ["Лёжа на животе, руки вперёд", "Поднять руки, грудь и ноги, пауза 2 с", "Взгляд в пол, шею не задирать"],
-    stop: "Стоп, если боль в пояснице острая: делайте поочерёдно.",
-    video: ["HorsNes1uDA", "Упражнение «Супермен» · 0:56"]
+    stop: "Стоп, если боль в пояснице острая: делайте поочерёдно."
   },
   deadbug: {
     name: "Мёртвый жук", tiers: ["Мёртвый жук, только ноги", "Мёртвый жук", "Мёртвый жук, медленно"],
     img: "Dead_Bug", frames: 2, muscles: "Глубокие мышцы пресса, защита поясницы",
     cues: ["Поясница прижата к полу всё время", "Медленно опустить руку и противоположную ногу", "Выдох при опускании"],
-    stop: "Стоп, если поясница отрывается от пола: уменьшите амплитуду.",
-    video: ["w3d8lKDXUVs", "Мёртвый жук: техника · 2:39"]
+    stop: "Стоп, если поясница отрывается от пола: уменьшите амплитуду."
   },
   sideplank: {
     name: "Боковая планка", tiers: ["Боковая планка с колен", "Боковая планка", "Боковая планка с поднятой ногой"],
     img: "Side_Bridge", frames: 2, muscles: "Косые мышцы пресса, бок", side: true,
     cues: ["Локоть под плечом", "Тело прямое, таз не проваливается", "На середине интервала смените бок"],
-    stop: "Стоп, если болит плечо опорной руки.",
-    video: ["q4hzrrvIFtk", "Боковая планка · 0:50"]
+    stop: "Стоп, если болит плечо опорной руки."
   },
   burpee: {
     name: "Бёрпи шагом", tiers: ["Бёрпи шагом, медленно", "Бёрпи шагом", "Бёрпи шагом с отжиманием"],
     img: "Burpee", frames: 2, muscles: "Всё тело и сердце",
     home: "На фото два главных положения: присед с руками на полу и планка. Ноги отводите назад по очереди, шагом.",
     cues: ["Присесть, руки на пол", "Шагом назад в планку, по одной ноге", "Шагом вернуться и встать"],
-    stop: "Стоп, если болят колени: приседайте неглубоко и медленнее.",
-    video: ["50-0F_gQHFI", "Бёрпи коротко и ясно · 1:00"]
+    stop: "Стоп, если болят колени: приседайте неглубоко и медленнее."
   },
   climber: {
     name: "Скалолаз", tiers: ["Скалолаз стоя, руки в стену", "Скалолаз", "Скалолаз в быстром темпе"],
     img: "Mountain_Climbers", frames: 2, muscles: "Пресс, плечи, сердце",
     cues: ["Упор лёжа, плечи над кистями", "Колено к груди поочерёдно", "Таз не задирать"],
-    stop: "Стоп, если болят запястья: делайте стоя, руки в стену.",
-    video: ["KdMg0xTzmus", "Скалолаз · 0:25"]
+    stop: "Стоп, если болят запястья: делайте стоя, руки в стену."
   },
   plank: {
     name: "Планка", tiers: ["Планка с колен", "Планка на локтях", "Планка с подъёмом руки"],
     img: "Plank", frames: 1, frameIndex: 1, muscles: "Весь кор, плечи",
     cues: ["Локти под плечами", "Ягодицы и пресс напряжены", "Тяжело держать? По 10 с с паузой 3 с, так советует Макгилл"],
-    stop: "Стоп, если поясница провисла: встаньте на колени.",
-    video: ["0JtBS11DGDk", "Как правильно держать планку · 1:46"]
+    stop: "Стоп, если поясница провисла: встаньте на колени."
   },
   // mobility / neck / chin
   chinLift: {
-    name: "Подбородок к потолку", figure: "chinLift", frames: 2, muscles: "Мышцы под подбородком, передняя часть шеи",
+    name: "Подбородок к потолку", img: "Chin_Lift", frames: 1, muscles: "Мышцы под подбородком, передняя часть шеи",
     cues: ["Сидя ровно, плечи опущены", "Медленно поднять взгляд к потолку и выдвинуть нижнюю челюсть вперёд", "Натяжение под подбородком, держать 10 с, 5 раз"],
-    stop: "Стоп, если кружится голова или щёлкает в шее.",
-    video: ["VacrvQfjgkA", "4 упражнения от двойного подбородка · 5:08"]
+    stop: "Стоп, если кружится голова или щёлкает в шее."
   },
   headLift: {
     name: "Подъём головы лёжа", figure: "headLift", frames: 2, muscles: "Глубокие мышцы шеи спереди",
     cues: ["Лёжа на спине, колени согнуты", "Втянуть подбородок и поднять голову на 2–3 см", "Держать 5–10 с, плечи на полу"],
-    stop: "Стоп, если болит шея: держите меньше.",
-    video: ["A3jjZNGTByw", "Подъём головы лёжа · 0:44"]
+    stop: "Стоп, если болит шея: держите меньше."
   },
   chinTuck: {
     name: "Втягивание подбородка", figure: "chinTuck", frames: 2, muscles: "Глубокие мышцы шеи, осанка",
     cues: ["Взгляд прямо, плечи опущены", "Подбородок назад, будто «двойной подбородок»", "Пауза 5 с, расслабиться"],
-    stop: "Стоп, если кружится голова.",
-    video: ["H0TWk06p5s4", "Chin Tuck · 0:16"]
+    stop: "Стоп, если кружится голова."
   },
   neckFront: {
     name: "Изометрия шеи: вперёд и назад", img: "Isometric_Neck_Exercise_-_Front_And_Back", frames: 2, muscles: "Мышцы шеи",
     half: "Теперь ладони на затылок, давите назад",
     cues: ["Ладони на лоб: голова давит, руки не пускают, 10 с", "Ладони на затылок: давить назад, 10 с", "Усилие наполовину, голова не двигается"],
-    stop: "Стоп, если боль отдаёт в руку или кружится голова.",
-    video: ["52SyClamwwo", "Изометрия для мышц шеи · 5:28"]
+    stop: "Стоп, если боль отдаёт в руку или кружится голова."
   },
   neckSide: {
     name: "Изометрия шеи: в стороны", img: "Isometric_Neck_Exercise_-_Sides", frames: 2, muscles: "Боковые мышцы шеи", side: true,
     cues: ["Ладонь у виска, голова давит в ладонь", "10 с, затем другая сторона", "Плечи опущены"],
-    stop: "Стоп, если боль отдаёт в руку.",
-    video: ["R_TqeP4IBZ4", "Изометрия для шеи · 4:05"]
+    stop: "Стоп, если боль отдаёт в руку."
   },
   neckStretch: {
     name: "Растяжка шеи вбок", img: "Side_Neck_Stretch", frames: 2, muscles: "Трапеции, шея", side: true,
-    cues: ["Ухо к плечу", "Рукой только слегка добавить вес", "Половину времени на каждую сторону"],
-    video: null
+    cues: ["Ухо к плечу", "Рукой только слегка добавить вес", "Половину времени на каждую сторону"]
   },
   kneesChest: {
     name: "Колени к груди", img: "Hug_Knees_To_Chest", frames: 2, muscles: "Поясница",
-    cues: ["Лёжа на спине, обнять колени", "Мягко покачаться", "Дышать спокойно"], video: null
+    cues: ["Лёжа на спине, обнять колени", "Мягко покачаться", "Дышать спокойно"]
   },
   cat: {
     name: "Кошка-корова", img: "Cat_Stretch", frames: 2, muscles: "Весь позвоночник",
-    cues: ["На четвереньках", "Выдох: спина круглая, вдох: прогиб", "Медленно, без рывков"], video: null
+    cues: ["На четвереньках", "Выдох: спина круглая, вдох: прогиб", "Медленно, без рывков"]
   },
   birdDog: {
     name: "Птица-собака", img: "Bird_Dog", frames: 1, muscles: "Поясница, ягодицы, баланс", side: true,
     cues: ["На четвереньках, спина ровная", "Вытянуть руку и противоположную ногу, пауза 3 с", "На середине интервала смените сторону"],
-    stop: "Стоп, если поясница прогибается: поднимайте ниже.",
-    video: ["9VzecpaSUGU", "Птица-собака: техника · 1:57"]
+    stop: "Стоп, если поясница прогибается: поднимайте ниже."
   },
   child: {
     name: "Поза ребёнка", img: "Childs_Pose", frames: 2, muscles: "Спина, плечи",
-    cues: ["Таз к пяткам", "Руки вперёд по полу", "Дышать животом"], video: null
+    cues: ["Таз к пяткам", "Руки вперёд по полу", "Дышать животом"]
   },
   kneeChest1: {
     name: "Колено к груди лёжа", img: "One_Knee_To_Chest", frames: 2, muscles: "Поясница, ягодицы", side: true,
-    cues: ["Лёжа на спине, одно колено к груди", "Половину времени на каждую ногу", "Вторая нога прямая"], video: null
+    cues: ["Лёжа на спине, одно колено к груди", "Половину времени на каждую ногу", "Вторая нога прямая"]
   },
   calfStretch: {
     name: "Растяжка икр у стены", img: "Calf_Stretch_Hands_Against_Wall", frames: 2, muscles: "Икры", side: true,
-    cues: ["Руки в стену, нога назад", "Пятка на полу", "Половину времени на каждую ногу"], video: null
+    cues: ["Руки в стену, нога назад", "Пятка на полу", "Половину времени на каждую ногу"]
   },
   breathe: {
     name: "Медленное дыхание", breathe: true, frames: 0, muscles: "Успокоить пульс",
-    cues: ["Вдох носом 4 с", "Выдох 6 с", "Плечи опущены"], video: null
+    cues: ["Вдох носом 4 с", "Выдох 6 с", "Плечи опущены"]
   },
   armCircles: {
     name: "Шаг на месте и круги руками", img: "Arm_Circles", frames: 2, muscles: "Разогрев",
-    cues: ["Колени выше", "Руки вращать вперёд и назад", "Дыхание ровное"], video: null
+    cues: ["Колени выше", "Руки вращать вперёд и назад", "Дыхание ровное"]
   },
   march: {
     name: "Шаг на месте, колени высоко", img: "Marching_High_Knees", frames: 1, muscles: "Разогрев, кардио",
-    cues: ["Колени до уровня таза", "Руки работают", "Спина прямая"], video: null
+    cues: ["Колени до уровня таза", "Руки работают", "Спина прямая"]
   },
   stepJack: {
     name: "Джампинг-джек шагом", img: "Jumping_Jacks", frames: 1, muscles: "Кардио, плечи",
-    cues: ["Шаг в сторону, руки вверх", "Вернуться, руки вниз", "Без прыжка первые 2 месяца"],
-    video: ["zVJ8GZS22v4", "Джампинг-джек · 1:04"]
+    cues: ["Шаг в сторону, руки вверх", "Вернуться, руки вниз", "Без прыжка первые 2 месяца"]
   },
   // standing circuit (from the «1×100» routine)
   clapLeg: {
     name: "Хлопок под ногой", figure: "clapLeg", frames: 2, muscles: "Пресс, бёдра, кардио",
     cues: ["Поднимайте ногу к рукам, а не руки к ноге", "Хлопок под бедром, спина прямая", "Ноги по очереди"],
-    stop: "Стоп, если тянет поясницу: колено ниже.",
-    video: null
+    stop: "Стоп, если тянет поясницу: колено ниже."
   },
   kneePush: {
     name: "Колено вверх и толчок", img: "Marching_High_Knees", frames: 1, muscles: "Пресс, сгибатели бедра",
-    cues: ["Поднять колено до пояса", "Ладонями толкнуть колено вниз, колено сопротивляется 1 с", "Ноги по очереди, грудь вперёд"],
-    video: null
+    cues: ["Поднять колено до пояса", "Ладонями толкнуть колено вниз, колено сопротивляется 1 с", "Ноги по очереди, грудь вперёд"]
   },
   kneeElbow: {
     name: "Колено к локтю стоя", figure: "kneeElbow", frames: 2, muscles: "Косые мышцы пресса, кардио",
     cues: ["Руки за головой, шею руками не тянуть", "Колено вверх к противоположному локтю", "Поворот корпусом, стороны по очереди"],
-    stop: "Стоп, если болит шея: руки к вискам, а не на затылок.",
-    video: null
+    stop: "Стоп, если болит шея: руки к вискам, а не на затылок."
   },
   deepSquat: {
     name: "Глубокий присед", tiers: ["Присед до параллели", "Глубокий присед", "Глубокий присед с паузой"],
     img: "Home_Squat", frames: 2, muscles: "Бёдра, ягодицы, подвижность",
     cues: ["Руки вперёд для баланса", "Пятки на полу, колени по носкам", "Глубина, пока спина прямая"],
-    stop: "Стоп, если болят колени: приседайте до параллели.",
-    video: null
+    stop: "Стоп, если болят колени: приседайте до параллели."
   }
 };
 
@@ -286,18 +253,41 @@ const DETAILS = {
   deepSquat: [5.5, "Ноги и подвижность тазобедренных суставов."]
 };
 
-const EXTRA_VIDEOS = {
-  cat: ["DzMj_xJ3syc", "Кошка: техника · 1:01"],
-  child: ["hCpTdHQEPNg", "Поза ребёнка · 2:59"],
-  kneesChest: ["SQX14WJsZhw", "Упражнения для поясницы в кровати · 7:15"],
-  kneeChest1: ["SQX14WJsZhw", "Упражнения для поясницы в кровати · 7:15"],
-  calfStretch: ["cqUvJzRqKJ8", "Растяжка икр у стены · 0:09"],
-  deepSquat: ["gml-R27ufas", "Как приседать правильно · 1:55"],
-  kneeElbow: ["kD9FFca2LLA", "Колено к локтю · 0:32"],
-  kneePush: ["iFMAHmYijWM", "Подъём коленей стоя · 0:28"],
-  march: ["-PncFy8Q6VY", "Ходьба на месте · 0:50"],
-  armCircles: ["-PncFy8Q6VY", "Ходьба на месте · 0:50"],
-  neckStretch: ["VcKay4B1zVk", "Если болит шея · 0:24"]
+// Demo videos, each checked frame by frame: [YouTube id, label, start s, end s] — only the demonstration plays.
+const VIDEOS = {
+  squat: ["umy8-ZteWIA", "Приседания: техника · 0:56"],
+  lunge: ["-n201mLoEhg", "Выпады назад · 0:35", 0, 35],
+  bridge: ["dMLUYKYJNiQ", "Ягодичный мост · 0:31", 0, 31],
+  latLunge: ["5ueRtFEm2rM", "Боковой выпад · 0:31", 3, 34],
+  calf: ["H6ULDBOvPmk", "Подъём на носки · 0:45", 0, 45],
+  pushup: ["vI3IwAsmEF4", "Отжимания: от пола и с колен · 0:15"],
+  snowAngel: ["67HMvMj1ycI", "Обратные снежные ангелы · 0:29", 3, 32],
+  pike: ["lSQIbKeKYTo", "Пайк-отжимания · 0:22"],
+  superman: ["HorsNes1uDA", "Супермен · 0:36", 4, 40],
+  deadbug: ["4rxzDQZ2q_c", "Мёртвый жук · 0:30"],
+  sideplank: ["q4hzrrvIFtk", "Боковая планка · 0:46", 0, 46],
+  burpee: ["50-0F_gQHFI", "Бёрпи шагом · 0:46", 4, 50],
+  climber: ["KdMg0xTzmus", "Скалолаз · 0:24"],
+  plank: ["_UsSBvVQp-s", "Планка на локтях · 0:30"],
+  chinLift: ["VacrvQfjgkA", "Подбородок к потолку · 0:42", 172, 214],
+  headLift: ["O0LDnTcSiek", "Подъём головы лёжа · 0:17", 2, 19],
+  chinTuck: ["H0TWk06p5s4", "Втягивание подбородка · 0:15"],
+  neckFront: ["bow2fO3IOLY", "Изометрия шеи: назад и вперёд · 0:22", 0, 22],
+  neckSide: ["R_TqeP4IBZ4", "Изометрия шеи: в сторону · 0:24", 22, 46],
+  neckStretch: ["VcKay4B1zVk", "Растяжка шеи вбок · 0:16", 6, 22],
+  kneesChest: ["hhxkveA-ZaQ", "Колени к груди, обнять · 0:40", 4, 44],
+  cat: ["DzMj_xJ3syc", "Кошка-корова · 1:00"],
+  birdDog: ["dYuONNBf3ts", "Птица-собака · 0:16"],
+  child: ["EJvQ8cqa8i0", "Поза ребёнка · 0:13", 3, 16],
+  kneeChest1: ["LcIXrI4XLu4", "Колено к груди лёжа · 0:28", 3, 31],
+  calfStretch: ["cqUvJzRqKJ8", "Растяжка икр у стены · 0:08"],
+  armCircles: ["ZtSWL-2qrkM", "Шаг на месте и круги руками · 0:27", 0, 27],
+  march: ["-PncFy8Q6VY", "Шаг на месте · 0:42", 0, 42],
+  stepJack: ["p3Lbu-ujehU", "Джампинг-джек шагом · 0:15"],
+  clapLeg: ["h5WOcepPgq4", "Хлопок под ногой · 0:20"],
+  kneePush: ["iFMAHmYijWM", "Колено вверх · 0:20", 0, 20],
+  kneeElbow: ["kD9FFca2LLA", "Колено к локтю стоя · 0:20", 0, 20],
+  deepSquat: ["9rAK8aVOl0g", "Глубокий присед · 0:35", 3, 38]
 };
 
 // One-line evidence for why each exercise is in the programme (shown under «Почему именно это упражнение»).
@@ -338,6 +328,78 @@ const WHY = {
   calfStretch: "Растяжка икр после нагрузки на ноги."
 };
 
+// Spoken rhythm during the work, repeated: [phrase, seconds until the next phrase].
+// Strength moves: about 2 s down, 1–2 s up (ACSM: moderate, controlled tempo for beginners).
+// Neck holds: 10 s or less, as in neck strengthening studies (Ylinen 2003).
+const TEMPO = {
+  squat: [["Вниз", 2], ["Вверх", 1.5]],
+  deepSquat: [["Вниз", 2.5], ["Вверх", 2]],
+  lunge: [["Шаг назад", 2], ["Вверх", 1.5]],
+  latLunge: [["В сторону", 2], ["Обратно", 1.5]],
+  bridge: [["Таз вверх", 1.5], ["Сожми", 1.5], ["Вниз", 2]],
+  calf: [["Вверх", 1], ["Пауза", 1], ["Вниз", 2]],
+  pushup: [["Вниз", 2], ["Вверх", 1.5]],
+  pike: [["Вниз", 2], ["Вверх", 1.5]],
+  snowAngel: [["Руки вперёд", 2.5], ["Назад к бёдрам", 2.5]],
+  superman: [["Поднять", 1.5], ["Держи", 2], ["Вниз", 1.5]],
+  deadbug: [["Правая рука, левая нога", 3], ["Вернуть", 1.5], ["Левая рука, правая нога", 3], ["Вернуть", 1.5]],
+  burpee: [["Руки на пол", 1.5], ["Шаг назад, шаг назад", 2.5], ["Шаг вперёд, шаг вперёд", 2.5], ["Встали", 1.5]],
+  climber: [["Левое колено", 1.2], ["Правое", 1.2]],
+  birdDog: [["Рука и нога", 1.5], ["Держи", 3], ["Вернуть", 1.5]],
+  cat: [["Выдох, спина круглая", 3.5], ["Вдох, прогиб", 3.5]],
+  chinTuck: [["Подбородок назад", 1.5], ["Держи", 4], ["Отпусти", 2]],
+  headLift: [["Подбородок к груди, голову вверх", 2.5], ["Держи", 5], ["Опусти", 3]],
+  chinLift: [["Взгляд вверх, челюсть вперёд", 2.5], ["Держи", 8], ["Отпусти", 3]],
+  neckFront: [["Дави", 1.5], ["Держи", 8.5], ["Отпусти", 3]],
+  neckSide: [["Дави", 1.5], ["Держи", 8.5], ["Отпусти", 3]],
+  breathe: [["Вдох", 4], ["Выдох", 6]],
+  stepJack: [["Шаг, руки вверх", 1.8], ["Руки вниз", 1.8]],
+  clapLeg: [["Правая, хлопок", 1.8], ["Левая, хлопок", 1.8]],
+  kneePush: [["Колено вверх", 1], ["Толкай", 2], ["Вниз", 1]],
+  kneeElbow: [["Колено к локтю", 1.8], ["Другая сторона", 1.8]]
+};
+// Static holds and stretches: the voice counts down instead of a rhythm.
+const HOLDS = new Set(["plank", "sideplank", "neckStretch", "child", "kneesChest", "kneeChest1", "calfStretch"]);
+// The hardest moves get at least 30 s of rest afterwards, whatever the level.
+const HEAVY = new Set(["burpee", "climber", "pushup", "pike"]);
+
+// Muscle map: [main muscles, helpers]. Region ids are drawn by bodyMapSvg in ui.js.
+const MAP = {
+  squat: [["quads", "glutes"], ["hams", "abs", "calves"]],
+  deepSquat: [["quads", "glutes"], ["adductors", "calves"]],
+  lunge: [["quads", "glutes"], ["hams", "adductors", "calves"]],
+  latLunge: [["adductors", "glutes", "quads"], ["hams"]],
+  bridge: [["glutes", "hams"], ["lowBack", "abs"]],
+  calf: [["calves"], []],
+  pushup: [["chest", "triceps", "delts"], ["abs"]],
+  pike: [["delts", "triceps"], ["chest", "upperBack"]],
+  snowAngel: [["upperBack"], ["delts", "lats", "lowBack"]],
+  superman: [["lowBack", "glutes"], ["upperBack", "hams"]],
+  deadbug: [["abs"], ["obliques"]],
+  sideplank: [["obliques"], ["abs", "delts", "glutes"]],
+  burpee: [["quads", "glutes", "chest"], ["delts", "triceps", "abs", "calves"]],
+  climber: [["abs"], ["delts", "quads", "obliques"]],
+  plank: [["abs"], ["obliques", "delts", "glutes"]],
+  chinLift: [["neckF"], []],
+  headLift: [["neckF"], ["abs"]],
+  chinTuck: [["neckF"], ["neckB"]],
+  neckFront: [["neckF", "neckB"], []],
+  neckSide: [["neckF", "neckB"], []],
+  neckStretch: [["neckB"], ["upperBack"]],
+  kneesChest: [["lowBack"], ["glutes"]],
+  kneeChest1: [["lowBack", "glutes"], ["hams"]],
+  cat: [["lowBack", "upperBack"], ["abs"]],
+  birdDog: [["lowBack", "glutes"], ["abs", "delts"]],
+  child: [["lowBack", "lats"], ["delts"]],
+  calfStretch: [["calves"], []],
+  armCircles: [["delts"], ["upperBack"]],
+  march: [["quads"], ["abs", "calves"]],
+  stepJack: [["delts", "calves"], ["quads"]],
+  clapLeg: [["abs"], ["quads", "delts"]],
+  kneePush: [["abs"], ["quads"]],
+  kneeElbow: [["obliques", "abs"], ["quads"]]
+};
+
 // Body position: switching between standing and floor gets a longer rest.
 const FLOOR_EXERCISES = new Set(["pushup", "bridge", "snowAngel", "plank", "pike", "superman", "sideplank", "deadbug", "climber"]);
 
@@ -346,7 +408,10 @@ const REGIONS = { squat: "legs", lunge: "legs", latLunge: "legs", calf: "legs", 
 
 export const EXERCISES = Object.freeze(Object.fromEntries(Object.entries(BASE_EXERCISES).map(([key, ex]) => {
   const [met, gives] = DETAILS[key] || [3, ex.muscles];
-  return [key, { ...ex, met, gives, why: WHY[key] || null, pos: FLOOR_EXERCISES.has(key) ? "floor" : "stand", region: REGIONS[key] || null, video: ex.video || EXTRA_VIDEOS[key] || null }];
+  return [key, {
+    ...ex, met, gives, why: WHY[key] || null, pos: FLOOR_EXERCISES.has(key) ? "floor" : "stand", region: REGIONS[key] || null,
+    video: VIDEOS[key] || null, tempo: TEMPO[key] || null, hold: HOLDS.has(key), heavy: HEAVY.has(key), map: MAP[key] || null
+  }];
 })));
 
 // Warm-up follows the RAMP pattern: raise pulse → mobilise → activate → potentiate.
@@ -364,6 +429,8 @@ export const PREP_SEC = 10;
 export const ROUND_REST_SEC = 45;
 // Getting down to the floor or up again needs extra time, whatever the level.
 export const POS_CHANGE_REST_SEC = 30;
+// After burpees, push-ups, pike push-ups and climbers the pulse is highest: at least 30 s to recover.
+export const HEAVY_REST_SEC = 30;
 
 // Full-body circuits (each muscle twice+ a week), alternating legs / push / pull / core
 // so one area rests while the next works (body-weight circuit principle, ACSM 2013).

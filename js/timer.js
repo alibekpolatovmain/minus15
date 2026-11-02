@@ -13,6 +13,14 @@ const SOFT_KINDS = new Set(["light", "stand", "morning", "chin"]);
 const FLOW_LABEL = { morning: "УТРО", chin: "ПОДБОРОДОК", light: "СПИНА И ШЕЯ" };
 const NUM_WORDS = ["", "один", "два", "три", "четыре", "пять", "шесть"];
 const NUM_GEN = ["", "одного", "двух", "трёх", "четырёх", "пяти", "шести"];
+// Spoken rhythm: starts after «Начали!», keeps quiet for the side switch and the final 3-2-1 beeps.
+const TEMPO_START_MS = 1500;
+const TEMPO_RESUME_MS = 1000;
+const TEMPO_QUIET_END_MS = 3500;
+const SIDE_QUIET_MS = 2500;
+const TEMPO_RATE = 1.15;
+const HOLD_EVERY_S = 10;
+const COUNTDOWN_FROM_S = 3;
 
 let run = null;
 const $ = (id) => document.getElementById(id);
@@ -40,13 +48,13 @@ function beep(freq, ms) {
     console.warn("beep failed", err);
   }
 }
-function say(text) {
+function say(text, rate = 1.05) {
   if (!run?.sound || !("speechSynthesis" in window)) return;
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "ru-RU";
-    u.rate = 1.05;
+    u.rate = rate;
     speechSynthesis.speak(u);
   } catch (err) {
     console.warn("speech failed", err);
@@ -85,7 +93,30 @@ function announce(step) {
     say(step.roundBreak ? `Круг закончен. Отдых ${step.sec} секунд. Потом ${roundWords(step).toLowerCase()}: ${next}. ${cue}` : `Отдых. Дальше: ${next}. ${cue}`);
     return;
   }
-  if (step.phase === "work") say(run.steps[run.i - 1]?.phase === "prep" ? "Начали!" : name);
+  const afterPrep = run.steps[run.i - 1]?.phase === "prep";
+  if (step.phase === "work") say(afterPrep ? "Начали!" : name);
+  else if (afterPrep) say(EXERCISES[step.ex].hold ? "Начали! Держим" : "Начали!");
+}
+
+/** Voice guidance during the work: a repeated rhythm («вниз… вверх…») or a countdown for holds. */
+function rhythm(step, now, left) {
+  if (!run.tempoVoice || left < TEMPO_QUIET_END_MS) return;
+  const ex = EXERCISES[step.ex];
+  if (ex.tempo) {
+    if (now < run.tempoAt) return;
+    const [word, sec] = ex.tempo[run.tempoIdx % ex.tempo.length];
+    run.tempoIdx += 1;
+    run.tempoAt = now + sec * 1000;
+    $("t-beat").textContent = word;
+    say(word, TEMPO_RATE);
+    return;
+  }
+  if (!ex.hold) return;
+  const s = Math.ceil(left / 1000);
+  if (s % HOLD_EVERY_S !== 0 || s >= step.sec || s === run.holdSaid) return;
+  run.holdSaid = s;
+  $("t-beat").textContent = `Ещё ${s} с`;
+  say(`Ещё ${s} секунд`);
 }
 
 /* ---------- render ---------- */
@@ -101,7 +132,7 @@ function render() {
   const isRest = step.phase === "rest";
   const upcoming = stepName({ ...step, label: isRest ? null : step.label });
   $("t-name").textContent = step.roundBreak ? "Отдых между кругами" : isRest ? `Дальше: ${upcoming}` : upcoming;
-  $("t-cue").textContent = run.ready ? "Займите место и нажмите «Начать»" : step.roundBreak ? `Попейте воды. Потом круг ${step.round}: «${upcoming}»` : EXERCISES[step.ex].cues[0];
+  $("t-cue").textContent = run.ready ? `${run.intro ? run.intro + " " : ""}Нажмите «Начать»: 10 секунд, чтобы встать на место, дальше голос ведёт сам` : step.roundBreak ? `Попейте воды. Потом круг ${step.round}: «${upcoming}»` : EXERCISES[step.ex].cues[0];
   $("t-media").innerHTML = frameHtml(step.ex, 0);
   $("t-next").innerHTML = PAUSE_LIKE.has(step.phase) ? "" : next ? `<span>Потом:</span> ${esc(stepName(next))}` : "Последнее упражнение";
   $("t-pause").textContent = run.ready ? "Начать" : run.paused ? "Продолжить" : "Пауза";
@@ -131,6 +162,11 @@ function enter(i, { paused = false } = {}) {
   run.sideSaid = false;
   run.frame = 0;
   run.flipAt = Date.now() + FLIP_MS;
+  run.tempoIdx = 0;
+  run.tempoAt = Date.now() + TEMPO_START_MS;
+  run.holdSaid = null;
+  run.lastTick = null;
+  $("t-beat").textContent = "";
   render();
   if (!paused) announce(run.steps[i]);
 }
@@ -148,13 +184,19 @@ function tick() {
   const left = run.endAt - now;
   updateClock();
   const s = Math.ceil(left / 1000);
-  if (s <= 3 && s >= 1 && s !== run.lastBeep) { run.lastBeep = s; beep(660, 120); }
+  if (s <= COUNTDOWN_FROM_S && s >= 1 && s !== run.lastBeep) { run.lastBeep = s; beep(660, 120); }
+  else if (step.phase === "prep" && s > COUNTDOWN_FROM_S && s !== run.lastTick) { run.lastTick = s; beep(520, 35); }
   const ex = EXERCISES[step.ex];
   if ((ex.half || ex.side) && !PAUSE_LIKE.has(step.phase) && !run.sideSaid && left <= (step.sec * 1000) / 2) {
     run.sideSaid = true;
+    run.holdSaid = s; // the countdown must not talk over «Смени сторону»
+    run.tempoIdx = 0;
+    run.tempoAt = now + SIDE_QUIET_MS;
     beep(880, 200);
+    $("t-beat").textContent = ex.half || "Смени сторону";
     say(ex.half || "Смени сторону");
   }
+  if (!PAUSE_LIKE.has(step.phase)) rhythm(step, now, left);
   if (frameCount(step.ex) === 2 && !PAUSE_LIKE.has(step.phase) && now >= run.flipAt) {
     run.frame = 1 - run.frame;
     run.flipAt = now + FLIP_MS;
@@ -175,6 +217,7 @@ function setPaused(paused) {
     try { speechSynthesis.cancel(); } catch (err) { /* no speech */ }
   } else {
     run.endAt = Date.now() + run.remaining;
+    run.tempoAt = Date.now() + TEMPO_RESUME_MS;
   }
   run.paused = paused;
   const starting = !paused && run.ready;
@@ -282,9 +325,9 @@ function record(feel) {
 }
 
 /* ---------- public ---------- */
-export function startTimer(session, { level, weight, sound, onEnd }) {
+export function startTimer(session, { level, weight, sound, tempoVoice = true, intro = null, onEnd }) {
   run = {
-    session, steps: session.steps, level, weight, sound, onEnd,
+    session, steps: session.steps, level, weight, sound, tempoVoice, intro, onEnd,
     i: 0, spent: [], paused: true, ready: true, finished: false, audio: sound ? makeAudio() : null,
     totalSec: session.steps.reduce((sum, s) => sum + s.sec, 0)
   };

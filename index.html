@@ -25,7 +25,8 @@
   <section id="screen-diary" class="screen" aria-label="Дневник" hidden></section>
   <section id="screen-help" class="screen" aria-label="Справка" hidden>
     <header class="large-title"><h1>Справка</h1><p>Всё, что не нужно каждый день</p></header>
-    <div class="settings-row"><label class="switch" for="opt-sound"><input type="checkbox" id="opt-sound" checked> Звук и голос в таймере</label></div>
+    <div class="settings-row"><label class="switch" for="opt-sound"><input type="checkbox" id="opt-sound" checked> Звук и голос в таймере</label>
+      <label class="switch" for="opt-tempo"><input type="checkbox" id="opt-tempo" checked> Голос считает темп: «вниз… вверх…»</label></div>
 
     <details class="help" open>
       <summary>Как пользоваться</summary>
@@ -44,6 +45,8 @@
         <li><b>Порядок «ноги → толчок → тяга → корпус».</b> Пока одни мышцы работают, другие отдыхают. Поэтому хватает 20–30 секунд отдыха, а пульс держится высоким: принцип круговой тренировки с весом тела (ACSM Health &amp; Fitness Journal, 2013).</li>
         <li><b>Почти до отказа.</b> Мышцы растут и от веса тела, если в конце подхода остаётся 1–2 повтора в запасе (мета-анализ Schoenfeld и соавт., 2017). В интервале делайте столько чистых повторов, сколько успеваете.</li>
         <li><b>Постепенная прогрессия.</b> Нагрузка растёт, только когда дважды подряд было легко: больше работы, меньше отдыха, сложнее вариант упражнения.</li>
+        <li><b>Темп голосом.</b> Около 2 с вниз и 1–2 с вверх: медленное опускание даёт мышцам больше работы и бережёт суставы (позиция ACSM, 2009). Голос говорит «вниз… вверх…», на экран смотреть не нужно.</li>
+        <li><b>Отдых после тяжёлого.</b> После бёрпи, отжиманий, пайк-отжиманий и скалолаза минимум 30 с: пульс выше всего, а новичку с весом больше 90 кг нужно время на восстановление.</li>
         <li><b>Разминка по схеме RAMP:</b> разогнать пульс → размять суставы → включить мышцы → короткое ускорение.</li>
         <li><b>Спина:</b> птица-собака и боковая планка из «большой тройки» профессора Макгилла плюс мёртвый жук вместо скручиваний: устойчивая поясница без нагрузки на диски.</li>
         <li><b>Шея и подбородок:</b> тренировка глубоких мышц шеи (втягивание подбородка, подъём головы лёжа) уменьшает «голову вперёд» и боль в шее (Jull и соавт.).</li>
@@ -141,7 +144,7 @@
 
     <details class="help">
       <summary>Источники</summary>
-      <p class="muted">Расход энергии: Compendium of Physical Activities 2024. Обмен: формула Миффлина — Сан Жеора. Холодная вода: Cain et al., PLOS ONE, 2025; Buijze et al., 2016. Фото и рисунки: Free Exercise DB (общественное достояние); wger.de (CC BY-SA 4.0); Wikimedia Commons: рисунки Everkinetic (CC BY-SA 3.0), фото бёрпи Taco Fleur (CC BY-SA 4.0), кадры пайк-отжиманий и приседа Danielflefil (CC BY-SA 4.0). Схемы-пиктограммы нарисованы для приложения. Это не медицинская консультация.</p>
+      <p class="muted">Расход энергии: Compendium of Physical Activities 2024. Обмен: формула Миффлина — Сан Жеора. Холодная вода: Cain et al., PLOS ONE, 2025; Buijze et al., 2016. Фото и рисунки: Free Exercise DB (общественное достояние); wger.de (CC BY-SA 4.0); Wikimedia Commons: рисунки Everkinetic (CC BY-SA 3.0), фото бёрпи Taco Fleur (CC BY-SA 4.0), кадры пайк-отжиманий и приседа Danielflefil (CC BY-SA 4.0). Pexels (свободная лицензия): боковые выпады Roman Odintsov и Polina Tankilevitch, «подбородок к потолку» Eliomar Reis, отжимания у опоры RDNE Stock project, с колен Gustavo Fring. Видео: YouTube, авторы указаны на каждом ролике. Схемы-пиктограммы нарисованы для приложения. Это не медицинская консультация.</p>
     </details>
   </section>
 </main>
@@ -164,6 +167,7 @@
     <p class="t-stats"><span>Сожжено ≈ <b id="t-kcal">0</b> ккал</span><span id="t-elapsed"></span></p>
     <h2 class="t-name" id="t-name"></h2>
     <p class="t-cue" id="t-cue"></p>
+    <p class="t-beat" id="t-beat" aria-hidden="true"></p>
     <div class="t-media" id="t-media"></div>
     <p class="t-next" id="t-next"></p>
     <div class="t-controls">

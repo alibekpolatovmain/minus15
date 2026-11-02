@@ -12,7 +12,6 @@ const STEPS_PER_KM = 1350;
 const MAX_KM_PER_DAY = 60;
 const HOME_HINT_DELAY_MS = 3800;
 const WALK_KCAL_PER_KG_KM = 0.5;
-const SEEN_ENOUGH = 2;
 const WEIGHT_EVERY_DAYS = 7;
 const WALK_NORM = [[2, 4], [4, 5], [8, 6], [Infinity, 7]];
 const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
@@ -243,6 +242,67 @@ function progressBlock() {
   </div>`;
 }
 
+function todayBurn() {
+  const t = today();
+  const train = db.sessions.filter((s) => s.date === t).reduce((sum, s) => sum + s.kcal, 0);
+  const walk = Math.round(dayOf(t).km * WALK_KCAL_PER_KG_KM * currentWeight());
+  const parts = [train ? `тренировки ${train}` : "", walk ? `ходьба ${walk}` : ""].filter(Boolean).join(" · ");
+  return `<div class="burn"><span>Сожжено сегодня</span><b>${train + walk} ккал</b><small>${parts || "пока 0: начните с тренировки или прогулки"}</small></div>`;
+}
+
+/* ---------- «Что я получу»: honest forecast ---------- */
+// Realistic fat loss: 0.5 kg a week up to ~0.8% of body weight (with ~500 kcal deficit from food).
+const LOSS_PER_WEEK_MIN = 0.5;
+const LOSS_PER_WEEK_SHARE_MAX = 0.008;
+const MILESTONES = [
+  { weeks: 2, title: "Через 2 недели", items: [
+    "Техника на автомате, голос ведёт, на экран смотреть почти не нужно.",
+    "Сила уже растёт: первые недели тело учится лучше включать мышцы (нервная адаптация), поэтому прогресс быстрый.",
+    "Утром спина гнётся легче, меньше скованности после сна."
+  ] },
+  { weeks: 4, title: "Через 1 месяц", items: [
+    "Отжиманий и приседаний на 20–30% больше, чем в первый день. Уровень в приложении поднимется сам.",
+    "Боль в спине по утрам у большинства заметно слабее: упражнения считаются главным лечением хронической боли в пояснице (Cochrane, 2021).",
+    "Лестница и прогулки даются легче."
+  ] },
+  { weeks: 13, title: "Через 3 месяца", items: [
+    "Мышцы видно: заметный рост мышц начинается через 6–12 недель регулярных тренировок.",
+    "Талия меньше, примерно на 1 см за каждый сброшенный килограмм (грубая оценка).",
+    "Шея крепче, голова меньше уходит вперёд, осанка ровнее (Falla, 2007; Ylinen, 2003).",
+    "Выносливость выше примерно на 10–15%: пульс быстрее успокаивается."
+  ] },
+  { weeks: 26, title: "Через 6 месяцев", items: [
+    "Вес близко к цели, лицо и шея суше: второй подбородок уходит вместе с общим жиром.",
+    "Спортивный силуэт: плечи, грудь, ноги в тонусе. Отжиматься 20+ раз подряд реально.",
+    "Сильные мышцы и ходьба снижают риск болезней сердца и диабета: это доказано для любого возраста (ВОЗ, 2020)."
+  ] }
+];
+
+function lossRange(weeks) {
+  const w = currentWeight();
+  const lo = Math.min(db.goalLoss, weeks * LOSS_PER_WEEK_MIN);
+  const hi = Math.min(db.goalLoss, weeks * Math.max(LOSS_PER_WEEK_MIN, w * LOSS_PER_WEEK_SHARE_MAX));
+  return [lo, hi];
+}
+
+function resultsSheet() {
+  const start = db.startDate || today();
+  const cards = MILESTONES.map((m) => {
+    const [lo, hi] = lossRange(m.weeks);
+    const d = new Date(addDays(start, m.weeks * 7) + "T12:00:00");
+    const kg = Math.abs(hi - lo) < 0.5 ? `−${fmt1(hi)} кг` : `−${fmt1(lo)}…${fmt1(hi)} кг`;
+    return `<section class="mile"><header><b>${esc(m.title)}</b><span>${d.getDate()} ${MONTHS[d.getMonth()]}</span></header>
+      <p class="mile-kg">${kg}<small>≈ ${fmt1(db.startWeight - hi)}–${fmt1(db.startWeight - lo)} кг на весах</small></p>
+      <ul>${m.items.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></section>`;
+  }).join("");
+  const body = openSheet(`<h3 class="sheet-title">Что вы получите</h3>
+    <p class="muted">Прогноз от старта ${esc(dateTitle(start))}, если делать 3–4 тренировки в неделю, ходить по норме и есть примерно на 500 ккал меньше, чем тратите.</p>
+    ${cards}
+    <p class="homeline">Честно: вес на 70–80% зависит от питания. Тренировки без питания дают силу, форму и здоровую спину, но вес уходит в 2–3 раза медленнее.</p>
+    <div class="sheet-foot"><button type="button" class="btn primary big" data-close>Понятно</button></div>`);
+  body.querySelector("[data-close]").addEventListener("click", closeSheet);
+}
+
 function renderToday() {
   const t = today();
   const plan = nextSession(db, t);
@@ -253,12 +313,14 @@ function renderToday() {
     : plan.status === "done" ? doneCard(plan) : plan.status === "light" ? lightCard(plan) : hardCard(plan);
   $("screen-today").innerHTML = `
     <header class="large-title"><h1>Сегодня</h1><p>${esc(dateTitle(t))} · неделя ${week}</p></header>
+    ${todayBurn()}
     ${plan.banner && !notStarted ? `<p class="banner">${esc(plan.banner)}</p>` : ""}
     ${card}
     <button type="button" class="btn link other" data-other>Другая тренировка</button>
     ${weightCard()}
     ${markTiles(week)}
     ${progressBlock()}
+    <button type="button" class="btn alt results" data-results><b>Что я получу через 1, 3 и 6 месяцев</b><small>прогноз веса, силы, спины и шеи</small></button>
     <button type="button" class="btn link safety" data-goto-safety>Когда нельзя тренироваться</button>`;
 }
 
@@ -269,34 +331,10 @@ function launch(kind, type, { early = false } = {}) {
   const params = plan.params;
   if (early && db.startDate > t) commit({ ...db, startDate: t });
   const resetSeen = params.comeback === "long";
-  const seen = resetSeen ? {} : db.seen;
   const session = planFor(kind, type, params);
-  const level = session.level;
-  const fresh = sessionExercises(session).filter((k) => (seen[seenKey(k, level)] || 0) < SEEN_ENOUGH);
-  const firstEver = db.sessions.length === 0;
-  const go = () => startTimer(session, { level, weight: currentWeight(), sound: db.sound, onEnd: (r) => finishSession(r, params, resetSeen) });
-  if (!fresh.length) { go(); return; }
-  showPreview(fresh, level, firstEver, go);
-}
-
-function showPreview(keys, level, firstEver, go) {
-  let i = 0;
-  const slide = () => {
-    const key = keys[i];
-    const safety = firstEver && i === 0 ? `<p class="homeline">Боль в суставе, в спине или головокружение: стоп. Лёгкое жжение в мышцах: норма.</p>` : "";
-    const body = openSheet(`<p class="eyebrow">Смотри, как делать · ${i + 1} из ${keys.length}</p>${safety}${howToHtml(key, level)}
-      <div class="sheet-foot">
-        <button type="button" class="btn primary big" data-next>${i + 1 < keys.length ? "Понятно, дальше" : "Понятно, к тренировке"}</button>
-        <button type="button" class="btn link" data-skip>Знаю, пропустить</button>
-      </div>`);
-    body.querySelector("[data-next]").addEventListener("click", () => {
-      i += 1;
-      if (i < keys.length) slide();
-      else { closeSheet(); go(); }
-    });
-    body.querySelector("[data-skip]").addEventListener("click", () => { closeSheet(); go(); });
-  };
-  slide();
+  // Straight into the timer: it opens on the first exercise and waits for «Начать».
+  const intro = db.sessions.length === 0 ? "Боль в суставе, в спине или головокружение: стоп. Жжение в мышцах: норма." : null;
+  startTimer(session, { level: session.level, weight: currentWeight(), sound: db.sound, tempoVoice: db.tempo, intro, onEnd: (r) => finishSession(r, params, resetSeen) });
 }
 
 function finishSession(result, params, resetSeen) {
@@ -513,6 +551,7 @@ function onTodayClick(e) {
   if (el.dataset.start) { closeSheet(); launch(el.dataset.start, el.dataset.type || nextSession(db, today()).type, { early: el.hasAttribute("data-early") }); return; }
   if (el.hasAttribute("data-walk")) { closeSheet(); walkSheet(); return; }
   if (el.hasAttribute("data-other")) { otherSheet(); return; }
+  if (el.hasAttribute("data-results")) { resultsSheet(); return; }
   if (el.dataset.km) { addKm(Number(el.dataset.km)); return; }
   if (el.dataset.info) { infoSheet(el.dataset.info, el.dataset.type || nextSession(db, today()).type); return; }
   if (el.dataset.toggle) { closeSheet(); const k = el.dataset.toggle; setDay(today(), { [k]: !dayOf(today())[k] }); return; }
@@ -665,6 +704,7 @@ function bindHelp() {
   $("backup-save").addEventListener("click", shareBackup);
   $("backup-load").addEventListener("change", (e) => { const f = e.target.files?.[0]; if (f) restoreBackup(f); e.target.value = ""; });
   $("opt-sound").addEventListener("change", (e) => commit({ ...db, sound: e.target.checked }));
+  $("opt-tempo").addEventListener("change", (e) => commit({ ...db, tempo: e.target.checked }));
   $("help-ex").innerHTML = ["A", "B", "C"].map((t) => `<h4>${esc(WORKOUTS[t].title)}</h4>${WORKOUTS[t].list.map((k) => `<details class="ex"><summary>${esc(EXERCISES[k].name)}</summary>${howToHtml(k, db.level)}</details>`).join("")}`).join("")
     + `<h4>Спина, шея, подбородок, стоя без пола</h4>${["birdDog", "chinTuck", "chinLift", "headLift", "neckFront", "neckSide", "clapLeg", "kneePush", "kneeElbow", "deepSquat"].map((k) => `<details class="ex"><summary>${esc(EXERCISES[k].name)}</summary>${howToHtml(k, db.level)}</details>`).join("")}`;
 }
@@ -685,6 +725,7 @@ function render() {
   if (tab === "today") renderToday();
   if (tab === "diary") renderDiary();
   $("opt-sound").checked = db.sound;
+  $("opt-tempo").checked = db.tempo;
 }
 
 function init() {
