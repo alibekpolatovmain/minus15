@@ -492,9 +492,16 @@ function infoSheet(kind, type) {
 
 function walkSheet(date = today()) {
   const isToday = date === today();
+  const recorded = dayOf(date).km;
   let unit = "km";
+  // Nothing recorded yet: one «Записать». Add/replace/reset only make sense once there is a number.
+  const actions = recorded > 0
+    ? `<button type="button" class="btn primary big" data-add>Добавить к записанному</button>
+    <button type="button" class="btn big" data-set>Заменить: это всё за день</button>
+    <button type="button" class="btn link" data-reset>Обнулить ходьбу за этот день</button>`
+    : `<button type="button" class="btn primary big" data-add>Записать</button>`;
   const body = openSheet(`<h3 class="sheet-title">Ходьба ${isToday ? "сегодня" : "· " + esc(dateTitle(date))}</h3>
-    <p class="muted">Уже записано: <b>${fmtKm(dayOf(date).km)} км</b></p>
+    ${recorded > 0 ? `<p class="muted">Уже записано: <b>${fmtKm(recorded)} км</b></p>` : ""}
     <div class="row3"><button type="button" class="btn big" data-km="1">+1 км</button><button type="button" class="btn big" data-km="2">+2 км</button><button type="button" class="btn big" data-km="3">+3 км</button></div>
     <p class="list-group">Или введите точно</p>
     <div class="seg" role="group" aria-label="Единицы">
@@ -504,9 +511,7 @@ function walkSheet(date = today()) {
     <label class="sr" for="walk-input">Сколько прошли</label>
     <input id="walk-input" class="num-input" type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" placeholder="например, 3,5">
     <p class="muted" id="walk-hint">Шаги можно взять из приложения «Здоровье». 1&nbsp;км&nbsp;≈&nbsp;${STEPS_PER_KM}&nbsp;шагов.</p>
-    <button type="button" class="btn primary big" data-add>Добавить к записанному</button>
-    <button type="button" class="btn big" data-set>Заменить: это всё за день</button>
-    <button type="button" class="btn link" data-reset>Обнулить ходьбу за этот день</button>`);
+    ${actions}`);
   const input = body.querySelector("#walk-input");
   const hint = body.querySelector("#walk-hint");
   const showHint = () => {
