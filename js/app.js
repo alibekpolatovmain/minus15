@@ -10,6 +10,7 @@ import { startTimer, bindTimer } from "./timer.js";
 import { netWorkoutKcal, monthChange, bodyFor } from "./forecast.js";
 import { dynamicsSheet, askProfile } from "./dynamics.js";
 import { resultsSheet } from "./results.js";
+import { videoListSheet, playVideo, videoTitle, videoKcal, VIDEO_WORKOUTS } from "./videos.js";
 
 const STEPS_PER_KM = 1350;
 const MAX_KM_PER_DAY = 60;
@@ -45,7 +46,8 @@ function walkNorm(week) {
 function dayOf(date) {
   return db.days[date] || { km: 0, morning: false, cold: false, chin: false, office: 0 };
 }
-function kindTitle(kind, type) {
+function kindTitle(kind, type, video = null) {
+  if (kind === "video") return `Видео: ${videoTitle(video)}`;
   if (kind === "short") return `Короткая · ${WORKOUTS[type].title.replace("Всё тело: ", "")}`;
   return KIND_TITLE[kind] || WORKOUTS[kind].title;
 }
@@ -135,7 +137,7 @@ function saveWeight(kg) {
 /* ---------- «Сегодня» ---------- */
 const altRow = (attrs, title, sub = "") => `<button type="button" class="btn alt" ${attrs}><b>${esc(title)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</button>`;
 // Secondary choices sit in one quiet list under the main card, so «Начать» is the only loud button.
-const altsHtml = (rows = []) => `<div class="alts">${rows.join("")}${altRow("data-other", "Другая тренировка")}</div>`;
+const altsHtml = (rows = []) => `<div class="alts">${rows.join("")}${altRow("data-videos", "Видео-тренировки", "вместе с 3D-тренером под музыку")}${altRow("data-other", "Другая тренировка")}</div>`;
 
 // One row: four exercises and «+N»; the full list sits behind «?».
 const THUMBS_SHOWN = 4;
@@ -408,11 +410,36 @@ function finishSession(result, params, resetSeen) {
   maybeHomeHint();
 }
 
+/* ---------- «Видео-тренировки» ---------- */
+function openVideos() {
+  videoListSheet({ weight: currentWeight(), onPick: (video) => playVideo(video, {
+    weight: currentWeight(),
+    onEnd: (r) => (r ? saveVideo(r.video.id, r.sec, r.kcal) : toast("Меньше минуты, записывать нечего")),
+    onDraft: (d) => (d ? saveDraft({ ...d, date: today() }) : clearDraft())
+  }) });
+}
+function saveVideo(id, sec, kcal, date = today(), recovered = false) {
+  const now = new Date();
+  const entry = {
+    id: `${date}-${now.getTime().toString(36)}`, date,
+    time: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+    kind: "video", type: null, level: db.level, minutes: Math.max(1, Math.round(sec / 60)), kcal, feel: null, partial: false, parts: [], video: id
+  };
+  commit({ ...db, sessions: [...db.sessions, entry] });
+  toast(`${recovered ? "Записал прерванное видео" : "Записано"}: ${kcal} ккал`);
+}
+
 /** A workout cut short by a closed app or a call: record the part that was done. */
 const MIN_RECOVER_ACTIVE_S = 30;
 function recoverDraft() {
   const draft = takeDraft();
   if (!draft) return;
+  if (draft.video) {
+    const video = VIDEO_WORKOUTS.find((v) => v.id === draft.video);
+    const sec = Math.round(Number(draft.sec));
+    if (video && sec >= MIN_RECOVER_ACTIVE_S * 2) saveVideo(video.id, sec, videoKcal(video, Number(draft.weight) || currentWeight(), sec), draft.date, true);
+    return;
+  }
   const weight = Number(draft.weight) || currentWeight();
   const parts = exerciseBreakdown(draft.session, weight, draft.spent);
   if (parts.reduce((sum, p) => sum + p.sec, 0) < MIN_RECOVER_ACTIVE_S) return;
@@ -606,6 +633,7 @@ function onTodayClick(e) {
   if (el.hasAttribute("data-other")) { otherSheet(); return; }
   if (el.hasAttribute("data-results")) { openResults(); return; }
   if (el.hasAttribute("data-dyn")) { openDynamics(); return; }
+  if (el.hasAttribute("data-videos")) { openVideos(); return; }
   if (el.dataset.km) { addKm(Number(el.dataset.km)); return; }
   if (el.dataset.info) { infoSheet(el.dataset.info, el.dataset.type || nextSession(db, today()).type); return; }
   if (el.dataset.toggle) { closeSheet(); const k = el.dataset.toggle; setDay(today(), { [k]: !dayOf(today())[k] }); return; }
@@ -685,7 +713,7 @@ function dayCards() {
     const d = dayOf(date);
     const w = db.weights.find((x) => x.date === date);
     const parts = [
-      ...ss.map((s) => `${kindTitle(s.kind, s.type)}${s.partial ? " (неполная)" : ""} · ${s.minutes} мин · ${s.kcal} ккал`),
+      ...ss.map((s) => `${kindTitle(s.kind, s.type, s.video)}${s.partial ? " (неполная)" : ""} · ${s.minutes} мин · ${s.kcal} ккал`),
       d.km ? `ходьба ${fmtKm(d.km)} км` : "", d.morning ? "утро ✓" : "", d.chin ? "подбородок ✓" : "", d.office ? (d.office > 1 ? `офис ×${d.office}` : "офис ✓") : "", d.cold ? "холод ✓" : "", w ? `вес ${fmt1(w.kg)}` : ""
     ].filter(Boolean);
     return `<button type="button" class="day" data-day="${date}"><b>${esc(dateTitle(date))}</b><span>${esc(parts.join(" · "))}</span></button>`;
@@ -704,7 +732,7 @@ function dayEditSheet(date) {
   const ss = db.sessions.filter((s) => s.date === date);
   const d = dayOf(date);
   const body = openSheet(`<h3 class="sheet-title">${esc(dateTitle(date))}</h3>
-    <div class="list">${ss.map((s) => `<div class="list-item static"><b>${esc(kindTitle(s.kind, s.type))}${s.partial ? " (неполная)" : ""}</b><small>${s.time} · ${s.minutes} мин · ${s.kcal} ккал</small>${partsList(s)}<button type="button" class="btn small danger" data-del="${esc(s.id)}">Удалить</button></div>`).join("") || `<p class="muted">Тренировок не было.</p>`}</div>
+    <div class="list">${ss.map((s) => `<div class="list-item static"><b>${esc(kindTitle(s.kind, s.type, s.video))}${s.partial ? " (неполная)" : ""}</b><small>${s.time} · ${s.minutes} мин · ${s.kcal} ккал</small>${partsList(s)}<button type="button" class="btn small danger" data-del="${esc(s.id)}">Удалить</button></div>`).join("") || `<p class="muted">Тренировок не было.</p>`}</div>
     <button type="button" class="btn big" data-walk-day>Ходьба: ${fmtKm(d.km)} км · изменить</button>
     <div class="row"><button type="button" class="btn ${d.morning ? "done" : ""}" data-t="morning">Утро ${d.morning ? "✓" : ""}</button><button type="button" class="btn ${d.chin ? "done" : ""}" data-t="chin">Подбородок ${d.chin ? "✓" : ""}</button><button type="button" class="btn ${d.cold ? "done" : ""}" data-t="cold">Холод ${d.cold ? "✓" : ""}</button></div>`);
   body.addEventListener("click", (e) => {

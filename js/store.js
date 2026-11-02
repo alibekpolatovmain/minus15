@@ -3,7 +3,8 @@ import { RULES } from "./plan.js";
 
 const KEY = "minus15:db:v1";
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const KINDS = new Set(["A", "B", "C", "short", "light", "stand", "morning", "chin", "office"]);
+const KINDS = new Set(["A", "B", "C", "short", "light", "stand", "morning", "chin", "office", "video"]);
+const VIDEO_ID_RE = /^[\w-]{11}$/;
 const FEELS = new Set(["easy", "ok", "hard", null]);
 
 export const DEFAULTS = Object.freeze({
@@ -45,7 +46,8 @@ function cleanSession(s) {
     kcal: Math.round(num(s.kcal, 0, 3000, 0)),
     feel: FEELS.has(s.feel) ? s.feel : null,
     partial: s.partial === true,
-    parts: cleanParts(s.parts)
+    parts: cleanParts(s.parts),
+    video: typeof s.video === "string" && VIDEO_ID_RE.test(s.video) ? s.video : null
   };
 }
 
@@ -133,7 +135,9 @@ export function takeDraft() {
   try {
     const raw = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
     localStorage.removeItem(DRAFT_KEY);
-    const valid = raw && date(raw.date) && raw.session && Array.isArray(raw.session.steps) && Array.isArray(raw.spent) && KINDS.has(raw.session.kind);
+    const timer = raw?.session && Array.isArray(raw.session.steps) && Array.isArray(raw.spent) && KINDS.has(raw.session.kind);
+    const video = typeof raw?.video === "string" && VIDEO_ID_RE.test(raw.video) && Number.isFinite(Number(raw.sec));
+    const valid = raw && date(raw.date) && (timer || video);
     return valid ? raw : null;
   } catch (err) {
     console.error("Draft unreadable", err);

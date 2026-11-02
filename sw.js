@@ -1,5 +1,5 @@
 // Offline cache for the home-screen app. Bump CACHE_VERSION on every release.
-const CACHE_VERSION = "minus15-v18";
+const CACHE_VERSION = "minus15-v19";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -19,6 +19,7 @@ const PRECACHE = [
   "./js/dynamics.js",
   "./js/charts.js",
   "./js/results.js",
+  "./js/videos.js",
   "./img/Arm_Circles_0.jpg",
   "./img/Lateral_Lunge_0.jpg",
   "./img/Standing_Hip_Flexors_0.jpg",
