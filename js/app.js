@@ -1,10 +1,10 @@
 // Screens: onboarding, «Сегодня», «Дневник», «Справка». Owns the database object.
 import { WORKOUTS, EXERCISES } from "./data.js";
 import {
-  nextSession, buildSession, sessionTotals, sessionExercises, applyFeedback, isoDate, addDays, daysBetween,
+  nextSession, buildSession, sessionTotals, sessionExercises, exerciseBreakdown, applyFeedback, isoDate, addDays, daysBetween,
   daysSinceHard, isHard, hardInLast7, weekIndex, RULES
 } from "./plan.js";
-import { load, save, exportFile, importFile } from "./store.js";
+import { load, save, exportFile, importFile, saveDraft, takeDraft, clearDraft } from "./store.js";
 import { esc, exName, seenKey, frameHtml, howToHtml, openSheet, closeSheet, bindSheet, toast, fmt1, fmtKm, kcalPerMin, bindVideos, MONTHS } from "./ui.js";
 import { startTimer, bindTimer } from "./timer.js";
 import { netWorkoutKcal, monthChange, bodyFor } from "./forecast.js";
@@ -361,17 +361,19 @@ function launch(kind, type, { early = false } = {}) {
   const session = planFor(kind, type, params);
   // Straight into the timer: it opens on the first exercise and waits for «Начать».
   const intro = db.sessions.length === 0 ? "Боль в суставе, в спине или головокружение: стоп. Жжение в мышцах: норма." : null;
-  startTimer(session, { level: session.level, weight: currentWeight(), sound: db.sound, tempoVoice: db.tempo, intro, onEnd: (r) => finishSession(r, params, resetSeen) });
+  startTimer(session, { level: session.level, weight: currentWeight(), sound: db.sound, tempoVoice: db.tempo, intro, onEnd: (r) => finishSession(r, params, resetSeen),
+    onDraft: (d) => (d ? saveDraft({ ...d, date: today(), weight: currentWeight() }) : clearDraft()) });
 }
 
 function finishSession(result, params, resetSeen) {
   if (!result) { render(); return; }
-  if (result.skipped) { toast("Меньше минуты работы, тренировка не записана"); render(); return; }
-  const { session, totals, feel, partial, level } = result;
+  if (result.skipped) { toast("Меньше 30 секунд движения, записывать нечего"); render(); return; }
+  const { session, totals, feel, partial, level, parts = [] } = result;
+  const date = result.date || today();
   const now = new Date();
   const entry = {
-    id: `${today()}-${now.getTime().toString(36)}`,
-    date: today(),
+    id: `${date}-${now.getTime().toString(36)}`,
+    date,
     time: `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
     kind: session.kind,
     type: session.type,
@@ -379,17 +381,18 @@ function finishSession(result, params, resetSeen) {
     minutes: Math.round(totals.seconds / 60),
     kcal: Math.round(totals.kcal),
     feel,
-    partial
+    partial,
+    parts
   };
   const seenBase = resetSeen ? {} : db.seen;
   const seen = partial ? seenBase : sessionExercises(session).reduce((acc, k) => ({ ...acc, [seenKey(k, level)]: (acc[seenKey(k, level)] || 0) + 1 }), { ...seenBase });
   const hardKind = !SOFT_KINDS.has(session.kind);
   const fb = hardKind && !partial && feel ? applyFeedback({ level, easyStreak: db.easyStreak, hardStreak: db.hardStreak }, feel, { noRaise: params.noRaise }) : null;
   const habit = session.kind === "chin" ? "chin" : session.kind === "light" || session.kind === "morning" ? "morning" : null;
-  const day = dayOf(today());
+  const day = dayOf(date);
   const days = partial ? db.days
-    : session.kind === "office" ? { ...db.days, [today()]: { ...day, office: (day.office || 0) + 1 } }
-    : habit ? { ...db.days, [today()]: { ...day, [habit]: true } } : db.days;
+    : session.kind === "office" ? { ...db.days, [date]: { ...day, office: (day.office || 0) + 1 } }
+    : habit ? { ...db.days, [date]: { ...day, [habit]: true } } : db.days;
   commit({
     ...db,
     sessions: [...db.sessions, entry],
@@ -401,8 +404,21 @@ function finishSession(result, params, resetSeen) {
   });
   if (fb?.changed > 0) toast("Следующая будет чуть тяжелее");
   else if (fb?.changed < 0) toast("Следующая будет чуть легче");
-  else toast(partial ? "Записано как неполная" : "Записано");
+  else toast(result.recovered ? `Записал прерванную тренировку: ${entry.kcal} ккал` : partial ? `Записано, что успели: ${entry.kcal} ккал` : "Записано");
   maybeHomeHint();
+}
+
+/** A workout cut short by a closed app or a call: record the part that was done. */
+const MIN_RECOVER_ACTIVE_S = 30;
+function recoverDraft() {
+  const draft = takeDraft();
+  if (!draft) return;
+  const weight = Number(draft.weight) || currentWeight();
+  const parts = exerciseBreakdown(draft.session, weight, draft.spent);
+  if (parts.reduce((sum, p) => sum + p.sec, 0) < MIN_RECOVER_ACTIVE_S) return;
+  const totals = sessionTotals(draft.session, weight, draft.spent);
+  const level = Math.round(Number(draft.level)) || db.level;
+  finishSession({ session: draft.session, totals, feel: null, partial: totals.ratio < RULES.PARTIAL_RATIO, level, parts, date: draft.date, recovered: true }, {}, false);
 }
 
 function maybeHomeHint() {
@@ -616,6 +632,14 @@ function diaryCount() {
   return `${n} ${plural(n, "тренировка", "тренировки", "тренировок")}`;
 }
 
+/** Calories per exercise of one recorded session, biggest first. */
+function partsList(s) {
+  if (!s.parts?.length) return "";
+  const rows = [...s.parts].sort((a, b) => b.kcal - a.kcal)
+    .map((p) => `<li><span>${esc(EXERCISES[p.ex] ? exName(p.ex, s.level) : p.ex)}</span><b>${p.kcal} ккал</b></li>`).join("");
+  return `<ul class="d-parts in-list">${rows}</ul>`;
+}
+
 function weekTiles() {
   const t = today();
   const week = weekIndex(db.startDate, t);
@@ -680,7 +704,7 @@ function dayEditSheet(date) {
   const ss = db.sessions.filter((s) => s.date === date);
   const d = dayOf(date);
   const body = openSheet(`<h3 class="sheet-title">${esc(dateTitle(date))}</h3>
-    <div class="list">${ss.map((s) => `<div class="list-item static"><b>${esc(kindTitle(s.kind, s.type))}</b><small>${s.time} · ${s.minutes} мин · ${s.kcal} ккал</small><button type="button" class="btn small danger" data-del="${esc(s.id)}">Удалить</button></div>`).join("") || `<p class="muted">Тренировок не было.</p>`}</div>
+    <div class="list">${ss.map((s) => `<div class="list-item static"><b>${esc(kindTitle(s.kind, s.type))}${s.partial ? " (неполная)" : ""}</b><small>${s.time} · ${s.minutes} мин · ${s.kcal} ккал</small>${partsList(s)}<button type="button" class="btn small danger" data-del="${esc(s.id)}">Удалить</button></div>`).join("") || `<p class="muted">Тренировок не было.</p>`}</div>
     <button type="button" class="btn big" data-walk-day>Ходьба: ${fmtKm(d.km)} км · изменить</button>
     <div class="row"><button type="button" class="btn ${d.morning ? "done" : ""}" data-t="morning">Утро ${d.morning ? "✓" : ""}</button><button type="button" class="btn ${d.chin ? "done" : ""}" data-t="chin">Подбородок ${d.chin ? "✓" : ""}</button><button type="button" class="btn ${d.cold ? "done" : ""}" data-t="cold">Холод ${d.cold ? "✓" : ""}</button></div>`);
   body.addEventListener("click", (e) => {
@@ -786,6 +810,7 @@ function init() {
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") render(); });
   if (!db.startDate) renderOnboarding();
   render();
+  recoverDraft();
   if ("serviceWorker" in navigator && location.protocol === "https:") {
     navigator.serviceWorker.register("sw.js").catch((err) => console.warn("offline cache unavailable", err));
   }

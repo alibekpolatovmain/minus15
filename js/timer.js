@@ -1,12 +1,14 @@
 // Fullscreen workout timer: intervals, voice, pause, «Как делать?», finish flow.
 import { EXERCISES } from "./data.js";
-import { RULES, sessionTotals } from "./plan.js";
+import { RULES, sessionTotals, exerciseBreakdown } from "./plan.js";
 import { esc, exName, frameHtml, frameCount, howToHtml, openSheet, closeSheet } from "./ui.js";
 
 const TICK_MS = 200;
 const FLIP_MS = 1500;
 const BACK_DOUBLE_MS = 2000;
-const MIN_WORK_TO_RECORD_S = 60;
+// Anything from half a minute of moving is recorded, even if the workout was cut short.
+const MIN_ACTIVE_TO_RECORD_S = 30;
+const PARTS_SHOWN = 6;
 const PHASE = { warm: "РАЗМИНКА", work: "РАБОТА", rest: "ОТДЫХ", cool: "ЗАМИНКА", flow: "СПИНА И ШЕЯ", prep: "ПРИГОТОВЬСЯ" };
 const PAUSE_LIKE = new Set(["rest", "prep"]);
 const SOFT_KINDS = new Set(["light", "stand", "morning", "chin", "office"]);
@@ -163,13 +165,24 @@ function updateClock() {
   const total = Math.max(0, Math.ceil(left / 1000));
   $("t-clock").textContent = `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
   $("t-bar").style.width = `${Math.min(100, Math.max(0, (left / (step.sec * 1000)) * 100))}%`;
-  const spent = run.steps.map((s, i) => (i === run.i ? (run.spent[i] || 0) + (s.sec * 1000 - Math.max(0, left)) : run.spent[i] || 0));
-  const live = sessionTotals(run.session, run.weight, spent);
+  const live = sessionTotals(run.session, run.weight, spentNow());
   $("t-kcal").textContent = `${Math.round(live.kcal)}`;
   $("t-elapsed").textContent = `${Math.floor(live.seconds / 60)}:${String(Math.floor(live.seconds % 60)).padStart(2, "0")} из ${Math.round(run.totalSec / 60)} мин`;
 }
 
 /* ---------- engine ---------- */
+/** Time spent on every step so far, the current one included. */
+function spentNow() {
+  const step = run.steps[run.i];
+  const left = run.paused ? run.remaining : Math.max(0, run.endAt - Date.now());
+  return run.steps.map((s, i) => (i === run.i ? Math.min(step.sec * 1000, (run.spent[i] || 0) + (step.sec * 1000 - left)) : run.spent[i] || 0));
+}
+
+/** After each finished exercise the app keeps what was done, so a closed app or a call still gets it recorded. */
+function saveProgress() {
+  if (!run || run.finished || run.ready || !run.onDraft) return;
+  run.onDraft({ session: run.session, level: run.level, spent: [...run.spent] });
+}
 function enter(i, { paused = false } = {}) {
   run.i = i;
   run.paused = paused;
@@ -186,6 +199,7 @@ function enter(i, { paused = false } = {}) {
   run.endSaid = false;
   $("t-beat").textContent = "";
   render();
+  saveProgress();
   if (!paused) announce(run.steps[i]);
 }
 
@@ -313,23 +327,34 @@ function finish() {
   root.classList.remove("paused");
   $("t-run").hidden = true;
   $("t-done").hidden = false;
-  if (totals.workSeconds < MIN_WORK_TO_RECORD_S) { end({ skipped: true }); return; }
+  run.parts = exerciseBreakdown(run.session, run.weight, run.spent);
+  const activeSec = run.parts.reduce((sum, p) => sum + p.sec, 0);
+  if (activeSec < MIN_ACTIVE_TO_RECORD_S) { end({ skipped: true }); return; }
   const partial = totals.ratio < RULES.PARTIAL_RATIO;
   const asksFeel = !partial && !SOFT_KINDS.has(run.session.kind);
   $("d-min").textContent = Math.round(totals.seconds / 60);
   $("d-kcal").textContent = `${Math.round(totals.kcal)}`;
-  $("d-title").textContent = partial ? "Сделано меньше половины. Записать?" : "Готово!";
+  $("d-title").textContent = partial ? "Что успели" : "Готово!";
+  $("d-parts").innerHTML = partsHtml(run.parts);
   $("d-feel").hidden = !asksFeel;
   $("d-ask").hidden = !asksFeel;
   $("d-save").hidden = asksFeel;
   $("d-save").textContent = partial ? "Записать" : "Записать и закрыть";
   $("d-drop").hidden = !partial;
+  $("d-drop").textContent = "Не записывать";
   run.partial = partial;
   if (!partial) say("Готово! Отличная работа.");
 }
 
+/** «Приседания · 2 мин · 25 ккал», the biggest first, so the user sees where the calories came from. */
+function partsHtml(parts) {
+  const top = [...parts].sort((a, b) => b.kcal - a.kcal).slice(0, PARTS_SHOWN);
+  return top.map((p) => `<li><span>${esc(exName(p.ex, run.level))}</span><b>${p.kcal} ккал</b></li>`).join("");
+}
+
 function end(result) {
   const cb = run.onEnd;
+  if (run.onDraft) run.onDraft(null);
   clearInterval(run.interval);
   try { run.wake?.release(); } catch (err) { /* released */ }
   try { run.audio?.close(); } catch (err) { /* closed */ }
@@ -340,13 +365,13 @@ function end(result) {
 }
 
 function record(feel) {
-  end({ session: run.session, totals: run.totals, feel, partial: run.partial, level: run.level });
+  end({ session: run.session, totals: run.totals, feel, partial: run.partial, level: run.level, parts: run.parts });
 }
 
 /* ---------- public ---------- */
-export function startTimer(session, { level, weight, sound, tempoVoice = true, intro = null, onEnd }) {
+export function startTimer(session, { level, weight, sound, tempoVoice = true, intro = null, onEnd, onDraft = null }) {
   run = {
-    session, steps: session.steps, level, weight, sound, tempoVoice, intro, onEnd,
+    session, steps: session.steps, level, weight, sound, tempoVoice, intro, onEnd, onDraft,
     i: 0, spent: [], paused: true, ready: true, finished: false, audio: sound ? makeAudio() : null,
     totalSec: session.steps.reduce((sum, s) => sum + s.sec, 0)
   };

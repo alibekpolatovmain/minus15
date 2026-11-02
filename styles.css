@@ -483,3 +483,14 @@ button.burn { width: 100%; border: 0; font: inherit; color: var(--ink); text-ali
 .tile + .tile { box-shadow: inset 0 1px 0 var(--line); }
 .tile.on { background: var(--good-soft); }
 .tiles + .burn { margin: 12px 0 0; }
+
+/* ---------- calories per exercise ---------- */
+.d-parts { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: 0; border-radius: 14px; overflow: hidden; background: rgba(255, 255, 255, 0.14); }
+.d-parts:empty { display: none; }
+.d-parts li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 14px; font-size: 15px; text-align: left; }
+.d-parts li + li { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+.d-parts b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.d-parts.in-list { grid-column: 1 / -1; background: var(--bg); margin-top: 6px; }
+.d-parts.in-list li { padding: 6px 12px; font-size: 14px; color: var(--ink); }
+.d-parts.in-list li + li { box-shadow: inset 0 1px 0 var(--line); }
+.d-parts.in-list b { color: var(--muted); font-weight: 600; }

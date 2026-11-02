@@ -44,8 +44,20 @@ function cleanSession(s) {
     minutes: Math.round(num(s.minutes, 0, 300, 0)),
     kcal: Math.round(num(s.kcal, 0, 3000, 0)),
     feel: FEELS.has(s.feel) ? s.feel : null,
-    partial: s.partial === true
+    partial: s.partial === true,
+    parts: cleanParts(s.parts)
   };
+}
+
+const MAX_PARTS = 40;
+const EX_KEY_RE = /^\w{1,40}$/;
+/** Per-exercise time and kcal of one session; older records have none. */
+function cleanParts(parts) {
+  if (!Array.isArray(parts)) return [];
+  return parts
+    .filter((p) => p && typeof p.ex === "string" && EX_KEY_RE.test(p.ex))
+    .map((p) => ({ ex: p.ex, sec: Math.round(num(p.sec, 0, 3600, 0)), kcal: Math.round(num(p.kcal, 0, 1000, 0)) }))
+    .slice(0, MAX_PARTS);
 }
 
 function cleanDay(d) {
@@ -103,6 +115,34 @@ export function save(db) {
     console.error("Database save failed", err);
     return false;
   }
+}
+
+/* ---------- unfinished workout ----------
+ * The timer saves progress every few seconds, so a workout cut short by a call or a closed app still gets recorded. */
+const DRAFT_KEY = "minus15:draft:v1";
+
+export function saveDraft(draft) {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch (err) {
+    console.error("Draft save failed", err);
+  }
+}
+
+export function takeDraft() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+    localStorage.removeItem(DRAFT_KEY);
+    const valid = raw && date(raw.date) && raw.session && Array.isArray(raw.session.steps) && Array.isArray(raw.spent) && KINDS.has(raw.session.kind);
+    return valid ? raw : null;
+  } catch (err) {
+    console.error("Draft unreadable", err);
+    return null;
+  }
+}
+
+export function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch (err) { console.error("Draft clear failed", err); }
 }
 
 export function exportFile(db) {

@@ -214,6 +214,20 @@ export function sessionTotals(session, weight, spentMs = null) {
   return { seconds, kcal, ratio: workTotal ? workDone / workTotal : 0, workSeconds: workDone };
 }
 
+const ACTIVE_PHASES = new Set(["work", "flow", "warm", "cool"]);
+
+/** Time and kcal per exercise actually done (rest and «get ready» excluded), in the order they came. */
+export function exerciseBreakdown(session, weight, spentMs) {
+  const byEx = new Map();
+  session.steps.forEach((step, i) => {
+    const sec = (spentMs[i] || 0) / 1000;
+    if (!ACTIVE_PHASES.has(step.phase) || sec <= 0) return;
+    const prev = byEx.get(step.ex) || { ex: step.ex, sec: 0, kcal: 0 };
+    byEx.set(step.ex, { ...prev, sec: prev.sec + sec, kcal: prev.kcal + (stepMet(step, session) * weight * sec) / 3600 });
+  });
+  return [...byEx.values()].map((p) => ({ ex: p.ex, sec: Math.round(p.sec), kcal: Math.round(p.kcal) }));
+}
+
 export function sessionExercises(session) {
   const phases = ["light", "morning", "chin", "office"].includes(session.kind) ? ["flow"] : ["work"];
   return [...new Set(session.steps.filter((s) => phases.includes(s.phase)).map((s) => s.ex))];

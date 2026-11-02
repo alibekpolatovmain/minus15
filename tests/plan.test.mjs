@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  nextSession, nextType, applyFeedback, isDeloadWeek, sessionParams, buildSession, sessionTotals, addDays
+  nextSession, nextType, applyFeedback, isDeloadWeek, sessionParams, buildSession, sessionTotals, exerciseBreakdown, addDays
 } from "../js/plan.js";
 
 const hard = (date, type, extra = {}) => ({ date, kind: type, type, level: 2, partial: false, ...extra });
@@ -242,4 +242,25 @@ test("alternating moves never also ask to switch sides at half-time", () => {
     const alternates = ex.tempo?.some(([w]) => /^(Прав|Лев|Вправо|Влево)/.test(w));
     assert.ok(!(alternates && ex.side), `${k} alternates and switches sides`);
   }
+});
+
+test("exercise breakdown sums time and kcal per exercise and skips rest and prep", () => {
+  const session = buildSession("A", "A", 2, 3);
+  const spent = session.steps.map((s) => s.sec * 1000);
+  const parts = exerciseBreakdown(session, 90, spent);
+  const total = sessionTotals(session, 90, spent);
+  const sumKcal = parts.reduce((a, p) => a + p.kcal, 0);
+  assert.ok(parts.length > 3);
+  assert.ok(parts.every((p) => p.sec > 0 && p.kcal >= 0 && typeof p.ex === "string"));
+  assert.ok(Math.abs(sumKcal - total.kcal) < total.kcal * 0.25, `${sumKcal} vs ${total.kcal}`);
+});
+
+test("exercise breakdown of a stopped workout lists only what was done", () => {
+  const session = buildSession("A", "A", 2, 3);
+  const firstWork = session.steps.findIndex((s) => s.phase === "work");
+  const spent = session.steps.map((s, i) => (i <= firstWork ? s.sec * 1000 : 0));
+  const parts = exerciseBreakdown(session, 90, spent);
+  const ex = session.steps[firstWork].ex;
+  assert.ok(parts.some((p) => p.ex === ex));
+  assert.ok(parts.every((p) => session.steps.slice(0, firstWork + 1).some((s) => s.ex === p.ex)));
 });
