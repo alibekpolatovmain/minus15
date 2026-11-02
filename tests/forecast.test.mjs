@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { restingKcal, dailyNeed, projectWeights, netWorkoutKcal, isProfileComplete, monthChange, KCAL_PER_KG } from "../js/forecast.js";
+import { restingKcal, dailyNeed, projectWeights, netWorkoutKcal, isProfileComplete, monthChange, bodyFor, KCAL_PER_KG } from "../js/forecast.js";
 
 const man = { weight: 95, height: 180, age: 35, sex: "m" };
 
@@ -52,4 +52,11 @@ test("month change uses the recorded intake when there is one", () => {
   const less = monthChange({ profile: man, intake: dailyNeed(man) - 300, activity: 0 });
   assert.equal(Math.round(usual * 100), 0);
   assert.ok(less < -1.1 && less > -1.2, `less ${less}`);
+});
+
+test("missing height or age falls back to an average adult, so a forecast is always possible", () => {
+  const body = bodyFor({ sex: "m", height: null, age: null }, 95);
+  assert.equal(body.weight, 95);
+  assert.ok(isProfileComplete(body));
+  assert.equal(bodyFor({ sex: "m", height: 180, age: 35 }, 95).height, 180);
 });

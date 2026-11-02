@@ -40,3 +40,14 @@ export function monthChange({ profile, intake, activity }) {
   const ws = projectWeights({ profile, intake: baseIntake(profile, intake), activity, days: MONTH_DAYS });
   return ws[MONTH_DAYS] - profile.weight;
 }
+
+// Used until the user gives height and age. With «eat as usual» the need cancels out, so these barely move the forecast.
+const AVERAGE_ADULT = { height: 175, age: 40 };
+
+/** Profile plus weight, with average height/age filled in where missing. */
+export const bodyFor = (profile, weight) => ({
+  sex: profile.sex,
+  height: isProfileComplete({ ...profile, age: AVERAGE_ADULT.age }) ? profile.height : AVERAGE_ADULT.height,
+  age: isProfileComplete({ ...profile, height: AVERAGE_ADULT.height }) ? profile.age : AVERAGE_ADULT.age,
+  weight
+});

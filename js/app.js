@@ -7,7 +7,7 @@ import {
 import { load, save, exportFile, importFile } from "./store.js";
 import { esc, exName, seenKey, frameHtml, howToHtml, openSheet, closeSheet, bindSheet, toast, fmt1, fmtKm, kcalPerMin, bindVideos, MONTHS } from "./ui.js";
 import { startTimer, bindTimer } from "./timer.js";
-import { netWorkoutKcal, monthChange, isProfileComplete } from "./forecast.js";
+import { netWorkoutKcal, monthChange, bodyFor } from "./forecast.js";
 import { dynamicsSheet, askProfile } from "./dynamics.js";
 import { resultsSheet } from "./results.js";
 
@@ -265,14 +265,12 @@ function todayBurn() {
   return `<button type="button" class="burn" data-dyn><span>Сожжено сегодня</span><b>${train + walk} ккал</b><small>${parts || "пока 0: начните с тренировки или прогулки"}</small>${paceLine()}</button>`;
 }
 
-/** «В таком темпе через месяц −0,8 кг» under today's calories; asks for height and age first. */
+/** «Через месяц в таком темпе ≈94,4 кг (−0,6)» under today's calories. */
 function paceLine() {
-  if (!isProfileComplete(db.profile)) return `<span class="burn-pace">Сколько сброшу за месяц? <u>Указать рост и возраст</u> ›</span>`;
-  const activity = activityPerDay(recentDates());
-  if (!activity && db.intake == null) return `<span class="burn-pace">Сделайте тренировку или прогулку, и я покажу, сколько сбросите за месяц ›</span>`;
-  const kg = monthChange({ profile: { ...db.profile, weight: currentWeight() }, intake: db.intake, activity });
-  const text = kg <= -0.05 ? `−${fmt1(-kg)} кг` : kg >= 0.05 ? `+${fmt1(kg)} кг` : "без изменений";
-  return `<span class="burn-pace">В таком темпе через месяц <b>${text}</b> ›</span>`;
+  const weight = currentWeight();
+  const kg = monthChange({ profile: bodyFor(db.profile, weight), intake: db.intake, activity: activityPerDay(recentDates()) });
+  const delta = kg <= -0.05 ? `−${fmt1(-kg)} кг` : kg >= 0.05 ? `+${fmt1(kg)} кг` : "пока без изменений";
+  return `<span class="burn-pace"><span>Вес через месяц</span><b>≈${fmt1(weight + kg)} кг</b><span>в таком темпе</span><em>${delta} ›</em></span>`;
 }
 
 /* ---------- «Динамика»: calories by day and the 30-day forecast ---------- */
@@ -306,7 +304,6 @@ function editProfile(then) {
   askProfile(db.profile, (profile) => { commit({ ...db, profile }); if (then) then(); });
 }
 function openDynamics() {
-  if (!isProfileComplete(db.profile)) { editProfile(openDynamics); return; }
   const t = today();
   const days = Array.from({ length: BURN_CHART_DAYS }, (_, i) => addDays(t, i - BURN_CHART_DAYS + 1)).map((d) => {
     const { train, walk } = burnOn(d);

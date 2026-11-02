@@ -1,5 +1,5 @@
 // «Динамика»: calories burned per day, 30-day weight forecast and «что если» scenarios. Also the one-time height/age question.
-import { dailyNeed, projectWeights, baseIntake, MIN_INTAKE, MONTH_DAYS } from "./forecast.js";
+import { dailyNeed, projectWeights, baseIntake, bodyFor, isProfileComplete, MIN_INTAKE, MONTH_DAYS } from "./forecast.js";
 import { weightLineChart, burnBarChart } from "./charts.js";
 import { esc, openSheet, closeSheet, fmt1, MONTHS } from "./ui.js";
 
@@ -126,7 +126,7 @@ function foodHint(state, ctx) {
 export function dynamicsSheet(input) {
   const ctx = {
     ...input,
-    body: { ...input.profile, weight: input.weight },
+    body: bodyFor(input.profile, input.weight),
     walkKcal: Math.round(EXTRA_WALK_KM * input.walkKcalPerKm),
     planGain: Math.max(0, input.activity.plan - input.activity.week)
   };
@@ -151,7 +151,9 @@ export function dynamicsSheet(input) {
       <p class="muted" data-out="food">${foodHint(state, ctx)}</p>
       <button type="button" class="btn link" data-usual>Считать «как обычно»</button>
     </details>
-    <p class="muted">Рост ${ctx.profile.height} см · ${ctx.profile.age} лет · ${ctx.profile.sex === "f" ? "женщина" : "мужчина"} · <button type="button" class="inline-link" data-profile>изменить</button></p>
+    <p class="muted">${isProfileComplete(ctx.profile)
+      ? `Рост ${ctx.profile.height} см · ${ctx.profile.age} лет · ${ctx.profile.sex === "f" ? "женщина" : "мужчина"} · <button type="button" class="inline-link" data-profile>изменить</button>`
+      : `Рост и возраст не указаны, считаю по среднему. Нужны, только если вы считаете еду. <button type="button" class="inline-link" data-profile>Указать</button>`}</p>
     <p class="muted">Это оценка, ошибка до 20–30%. В первую неделю весы могут показать больше: уходит вода. Взвешивайтесь раз в неделю, прогноз будет точнее.</p>
     <div class="sheet-foot"><button type="button" class="btn primary big" data-close>Готово</button></div>`,
   { onClose: () => input.onSave({ intake: state.intake }) });
