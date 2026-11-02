@@ -17,8 +17,10 @@ const WALK_NORM = [[2, 4], [4, 5], [8, 6], [Infinity, 7]];
 const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
 const WEEKDAY_SHORT = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
 const WEEKDAYS = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
-const KIND_TITLE = { light: "Спина и шея", stand: "Стоя, без пола", morning: "Утренний комплекс", chin: "Шея и подбородок" };
-const SOFT_KINDS = new Set(["light", "stand", "morning", "chin"]);
+const KIND_TITLE = { light: "Спина и шея", stand: "Стоя, без пола", morning: "Утренний комплекс", chin: "Шея и подбородок", office: "Офис: перерыв от сидения" };
+const SOFT_KINDS = new Set(["light", "stand", "morning", "chin", "office"]);
+// Break up sitting every 30–60 min (Dunstan 2012); three office breaks a day is the target.
+const OFFICE_GOAL = 3;
 
 let db = load();
 const $ = (id) => document.getElementById(id);
@@ -39,7 +41,7 @@ function walkNorm(week) {
   return WALK_NORM.find(([upTo]) => week <= upTo)[1];
 }
 function dayOf(date) {
-  return db.days[date] || { km: 0, morning: false, cold: false, chin: false };
+  return db.days[date] || { km: 0, morning: false, cold: false, chin: false, office: 0 };
 }
 function kindTitle(kind, type) {
   if (kind === "short") return `Короткая · ${WORKOUTS[type].title.replace("Всё тело: ", "")}`;
@@ -130,7 +132,7 @@ function saveWeight(kg) {
 
 /* ---------- «Сегодня» ---------- */
 function thumbs(session) {
-  return `<div class="thumbs">${sessionExercises(session).map((k) => `<span>${frameHtml(k, 0)}</span>`).join("")}</div>`;
+  return `<div class="thumbs">${sessionExercises(session).map((k) => `<span>${frameHtml(k, 0, session.level)}</span>`).join("")}</div>`;
 }
 
 function hardCard(plan) {
@@ -196,6 +198,15 @@ function routineTile(kind, done, title, sub) {
     </div>`;
 }
 
+function officeTile(count) {
+  const s = planFor("office", null, {});
+  const done = count >= OFFICE_GOAL;
+  return `<div class="tile ${done ? "on" : ""}">
+      <button type="button" class="tile-main" data-info="office"><b>Офис <span class="q">?</span></b><span>${count} из ${OFFICE_GOAL} перерывов · ${minLabel(s)} · ≈${kcalOf(s)} ккал</span></button>
+      <div class="tile-actions"><button type="button" class="btn small ${done ? "done" : ""}" data-start="office">${count ? "Ещё раз" : "Начать"}</button></div>
+    </div>`;
+}
+
 function markTiles(week) {
   const d = dayOf(today());
   const norm = walkNorm(week);
@@ -205,7 +216,8 @@ function markTiles(week) {
       <button type="button" class="tile-main" data-walk><b>Ходьба ›</b><span>${fmtKm(d.km)} из ${norm} км · ≈${Math.round(d.km * WALK_KCAL_PER_KG_KM * currentWeight())} ккал</span></button>
       <div class="tile-actions"><button type="button" class="btn small" data-km="1">+1 км</button><button type="button" class="btn small" data-km="2">+2 км</button></div>
     </div>
-    ${routineTile("morning", d.morning, "Утренний комплекс", `для спины после сна · ${minLabel(planFor("morning", null, {}))} · ≈${kcalOf(planFor("morning", null, {}))} ккал`)}
+    ${routineTile("morning", d.morning, "Утро", `комплекс для спины после сна · ${minLabel(planFor("morning", null, {}))} · ≈${kcalOf(planFor("morning", null, {}))} ккал`)}
+    ${officeTile(d.office || 0)}
     ${routineTile("chin", d.chin, "Шея и подбородок", `от второго подбородка · ${minLabel(planFor("chin", null, {}))} · ≈${kcalOf(planFor("chin", null, {}))} ккал`)}
     <div class="tile ${d.cold ? "on" : ""}">
       <div class="tile-main"><b>Холодный душ</b><span>30–90 секунд в конце</span></div>
@@ -359,7 +371,10 @@ function finishSession(result, params, resetSeen) {
   const hardKind = !SOFT_KINDS.has(session.kind);
   const fb = hardKind && !partial && feel ? applyFeedback({ level, easyStreak: db.easyStreak, hardStreak: db.hardStreak }, feel, { noRaise: params.noRaise }) : null;
   const habit = session.kind === "chin" ? "chin" : session.kind === "light" || session.kind === "morning" ? "morning" : null;
-  const days = habit && !partial ? { ...db.days, [today()]: { ...dayOf(today()), [habit]: true } } : db.days;
+  const day = dayOf(today());
+  const days = partial ? db.days
+    : session.kind === "office" ? { ...db.days, [today()]: { ...day, office: (day.office || 0) + 1 } }
+    : habit ? { ...db.days, [today()]: { ...day, [habit]: true } } : db.days;
   commit({
     ...db,
     sessions: [...db.sessions, entry],
@@ -415,6 +430,7 @@ function otherSheet() {
       ${item("light", null, "Спина и шея", "мягко, без прыжков")}
       ${item("morning", null, "Утренний комплекс", "для спины после сна")}
       ${item("chin", null, "Шея и подбородок", "от второго подбородка")}
+      ${item("office", null, "Офис", "стоя и сидя, без пота, каждые 1–2 часа")}
       ${item("stand", null, "Стоя, без пола", "хлопки, колени, глубокий присед")}
     </div>
     <p class="list-group">Без таймера</p>
@@ -431,6 +447,7 @@ function parseWalk(text, unit) {
 }
 
 const INFO_INTRO = {
+  office: "Каждые 30–60 минут сидения вставайте хотя бы на пару минут, а 2–3 раза за день делайте этот комплекс. Всё стоя или сидя, в обычной одежде и без пота. Короткие перерывы в сидении снижают сахар после еды, а упражнения для лопаток и шеи на рабочем месте уменьшают боль в шее и плечах.",
   morning: "Делайте сразу после сна, можно прямо на кровати или на коврике. Снимает утреннюю скованность в спине и шее.",
   light: "Мягкая тренировка для спины, шеи и осанки. Подходит на следующий день после силовой.",
   stand: "Всё стоя, без пола и прыжков: пресс, ноги и пульс.",
@@ -445,7 +462,7 @@ function infoSheet(kind, type) {
   const totals = sessionTotals(session, weight);
   const level = session.level;
   const rows = sessionExercises(session).map((k) => `<details class="info-row">
-      <summary><span class="info-thumb">${frameHtml(k, 0)}</span><span class="info-text"><b>${esc(exName(k, level))}</b><small>${esc(EXERCISES[k].gives)}</small></span><span class="info-kcal"><b>${Math.round(kcalPerMin(k, weight))}</b><small>ккал/мин</small></span></summary>
+      <summary><span class="info-thumb">${frameHtml(k, 0, level)}</span><span class="info-text"><b>${esc(exName(k, level))}</b><small>${esc(EXERCISES[k].gives)}</small></span><span class="info-kcal"><b>${Math.round(kcalPerMin(k, weight))}</b><small>ккал/мин</small></span></summary>
       <div class="info-more">${howToHtml(k, level, null, { showTitle: false })}<button type="button" class="btn link info-collapse" data-collapse>Свернуть ▲</button></div>
     </details>`).join("");
   const intro = INFO_INTRO[kind] ? `<p class="muted">${esc(INFO_INTRO[kind])}</p>` : "";
@@ -610,7 +627,7 @@ function weightChart() {
 }
 
 function dayCards() {
-  const dates = new Set([...db.sessions.map((s) => s.date), ...Object.keys(db.days).filter((d) => { const x = db.days[d]; return x.km || x.morning || x.cold; }), ...db.weights.map((w) => w.date)]);
+  const dates = new Set([...db.sessions.map((s) => s.date), ...Object.keys(db.days).filter((d) => { const x = db.days[d]; return x.km || x.morning || x.cold || x.office; }), ...db.weights.map((w) => w.date)]);
   const list = [...dates].sort().reverse().slice(0, 30);
   if (!list.length) return `<p class="muted">Здесь появятся ваши дни. Начните с кнопки на экране «Сегодня».</p>`;
   return `<div class="days">${list.map((date) => {
@@ -619,7 +636,7 @@ function dayCards() {
     const w = db.weights.find((x) => x.date === date);
     const parts = [
       ...ss.map((s) => `${kindTitle(s.kind, s.type)}${s.partial ? " (неполная)" : ""} · ${s.minutes} мин · ${s.kcal} ккал`),
-      d.km ? `ходьба ${fmtKm(d.km)} км` : "", d.morning ? "утро ✓" : "", d.chin ? "подбородок ✓" : "", d.cold ? "холод ✓" : "", w ? `вес ${fmt1(w.kg)}` : ""
+      d.km ? `ходьба ${fmtKm(d.km)} км` : "", d.morning ? "утро ✓" : "", d.chin ? "подбородок ✓" : "", d.office ? `офис ×${d.office}` : "", d.cold ? "холод ✓" : "", w ? `вес ${fmt1(w.kg)}` : ""
     ].filter(Boolean);
     return `<button type="button" class="day" data-day="${date}"><b>${esc(dateTitle(date))}</b><span>${esc(parts.join(" · "))}</span></button>`;
   }).join("")}</div>`;

@@ -25,17 +25,27 @@ export function figureSvg(name, frame) {
     f.floor ? `<path d="M20 178 L280 178" stroke-width="4" opacity="0.45"/>` : "",
     f.mat ? `<rect x="96" y="6" width="108" height="182" rx="12" stroke-width="3" opacity="0.3"/>` : "",
     f.dashX ? `<path d="M${f.dashX} 20 L${f.dashX} 190" stroke-dasharray="6 8" stroke-width="2.5" opacity="0.45"/>` : "",
-    f.arrow ? `<path d="${f.arrow}" stroke-width="4" opacity="0.65"/>` : ""
+    f.chair ? `<path d="M112 64 L112 178 M108 118 L166 118 M162 118 L162 178" stroke-width="6" opacity="0.5"/>` : "",
+    f.arrow ? `<path class="fig-move" d="${f.arrow}" stroke-width="5"/>` : "",
   ].join("");
+  const marks = f.marks ? `<path class="fig-move" d="${f.marks}" stroke-width="7"/>` : "";
   const head = f.headP
     ? `<g transform="translate(${f.headP[0]} ${f.headP[1]}) rotate(${f.headP[2]})" fill="currentColor" stroke="none"><circle r="24"/><path d="M19 -9 L38 5 L19 12 Z"/></g>`
     : `<circle cx="${f.head[0]}" cy="${f.head[1]}" r="15" fill="currentColor" stroke="none"/>`;
-  return `<svg class="fig" viewBox="${FIGURE_VIEWBOX[name] || "0 0 300 190"}" preserveAspectRatio="xMidYMid meet" role="img" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${helpers}<path d="${f.p}" stroke-width="13"/>${head}</g></svg>`;
+  return `<svg class="fig" viewBox="${FIGURE_VIEWBOX[name] || "0 0 300 190"}" preserveAspectRatio="xMidYMid meet" role="img" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${helpers}<path d="${f.p}" stroke-width="13"/>${marks}${head}</g></svg>`;
 }
 
-/** One frame of an exercise: photo, stick figure or the breathing circle. */
-export function frameHtml(key, frame = 0) {
+/** Photo of the easier variant the user does at this level (push-ups: incline, knees), or null. */
+function levelImg(ex, level) {
+  if (!ex.levels || level == null) return null;
+  return ex.levels[tierOf(level)]?.[0] || null;
+}
+
+/** One frame of an exercise: photo, stick figure or the breathing circle. With a level, easier variants show their own photo. */
+export function frameHtml(key, frame = 0, level = null) {
   const ex = EXERCISES[key];
+  const variant = levelImg(ex, level);
+  if (variant) return `<img src="${IMG(variant, 0)}" alt="${esc(exName(key, level))}" draggable="false">`;
   if (ex.breathe) return `<div class="breath" aria-label="Вдох 4 секунды, выдох 6"><i></i></div>`;
   if (ex.figure) return figureSvg(ex.figure, Math.min(frame, 1));
   const n = ex.frames === 2 ? Math.min(frame, 1) : ex.frameIndex ?? 0;
@@ -58,8 +68,8 @@ function levelsHtml(ex) {
   return `<div class="pair">${ex.levels.map(([img, cap]) => `<figure><img src="${IMG(img, 0)}" alt="${esc(cap)}" draggable="false"><figcaption>${esc(cap)}</figcaption></figure>`).join("")}</div>`;
 }
 
-export function frameCount(key) {
-  return EXERCISES[key].frames || 1;
+export function frameCount(key, level = null) {
+  return levelImg(EXERCISES[key], level) ? 1 : EXERCISES[key].frames || 1;
 }
 
 export const kcalPerMin = (key, weight) => (EXERCISES[key].met * weight) / 60;
@@ -72,7 +82,7 @@ export function videoHtml(key) {
   if (!v) return "";
   const [id, label, start, end] = v;
   const length = esc(label.split("·").pop().trim());
-  const range = `${secs(start) ? ` data-start="${secs(start)}"` : ""}${secs(end) ? ` data-end="${secs(end)}"` : ""}`;
+  const range = `${secs(start) ? ` data-from="${secs(start)}"` : ""}${secs(end) ? ` data-to="${secs(end)}"` : ""}`;
   const link = `${YT(id)}${secs(start) ? `&t=${secs(start)}s` : ""}`;
   return `<div class="yt"><button type="button" class="yt-play" data-yt="${esc(id)}"${range}><span class="yt-icon" aria-hidden="true"></span>Смотреть видео · ${length}</button></div>
     <a class="yt-link" href="${link}" target="_blank" rel="noopener">Не открывается? Смотреть на YouTube</a>`;
@@ -97,7 +107,7 @@ export function bindVideos() {
     const frame = document.createElement("div");
     frame.className = "yt-frame";
     const origin = encodeURIComponent(location.origin);
-    const range = `${btn.dataset.start ? `&start=${Number(btn.dataset.start)}` : ""}${btn.dataset.end ? `&end=${Number(btn.dataset.end)}` : ""}`;
+    const range = `${btn.dataset.from ? `&start=${Number(btn.dataset.from)}` : ""}${btn.dataset.to ? `&end=${Number(btn.dataset.to)}` : ""}`;
     frame.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&rel=0${range}&origin=${origin}" title="Видео упражнения" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
     btn.closest(".yt").replaceWith(frame);
   });

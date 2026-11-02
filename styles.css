@@ -371,3 +371,6 @@ body:has(#sheet:not([hidden])) .toast { bottom: auto; top: calc(env(safe-area-in
 .t-beat { font-size: clamp(22px, 6.5vw, 30px); font-weight: 800; line-height: 1.15; min-height: 2.3em; display: flex; align-items: center; justify-content: center; }
 .timer[data-phase="prep"] .t-beat, .timer[data-phase="rest"] .t-beat { min-height: 0; }
 .settings-row .switch + .switch { border-top: 1px solid var(--line); }
+
+/* Pictograms: whatever moves (arrows, shoulder blades) is drawn in red so the motion reads at a glance. */
+.fig .fig-move { stroke: #D92D20; }

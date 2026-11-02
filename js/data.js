@@ -6,9 +6,22 @@ export const YT = (id) => `https://www.youtube.com/watch?v=${id}`;
 // head: [x, y] solid head; headP: [x, y, tilt] profile head with nose; floor/mat/dashX/arrow are helpers.
 export const FIGURE_VIEWBOX = {
   snowAngel: "80 0 140 192", chinTuck: "104 38 112 128",
-  headLift: "40 108 240 78", clapLeg: "74 12 150 172", kneeElbow: "74 12 150 172"
+  sitStand: "70 12 170 172", soleus: "80 40 150 144", scapSqueeze: "90 12 120 172",
+  headLift: "40 108 240 78", clapLeg: "74 12 150 172", kneeElbow: "70 12 160 172"
 };
 export const FIGURES = {
+  sitStand: [
+    { head: [142, 58], chair: true, floor: true, p: "M138 76 L128 116 M128 116 L172 118 L172 176 M136 86 L170 96" },
+    { head: [192, 34], chair: true, floor: true, p: "M192 52 L192 112 M192 112 L188 176 M192 112 L198 176 M192 62 L228 72", arrow: "M222 150 L222 112 M214 120 L222 112 L230 120" }
+  ],
+  soleus: [
+    { head: [142, 58], chair: true, floor: true, p: "M138 76 L128 116 M128 116 L172 118 L172 174 L194 176 M136 86 L166 112" },
+    { head: [142, 58], chair: true, floor: true, p: "M138 76 L128 116 M128 116 L172 108 L178 160 L196 176 M136 86 L166 104", arrow: "M164 176 L164 150 M157 157 L164 150 L171 157" }
+  ],
+  scapSqueeze: [
+    { head: [150, 34], floor: true, p: "M150 52 L150 112 M150 62 L126 86 L120 54 M150 62 L174 86 L180 54 M146 112 L142 176 M154 112 L158 176", arrow: "M120 104 L138 104 M131 97 L138 104 L131 111 M180 104 L162 104 M169 97 L162 104 L169 111" },
+    { head: [150, 34], floor: true, p: "M150 52 L150 112 M150 62 L118 96 L110 60 M150 62 L182 96 L190 60 M146 112 L142 176 M154 112 L158 176", marks: "M141 68 L141 94 M159 68 L159 94" }
+  ],
   snowAngel: [
     { head: [150, 30], mat: true, p: "M150 48 L150 118 M150 58 L126 110 M150 58 L174 110 M146 118 L138 176 M154 118 L162 176", arrow: "M116 122 Q 84 72 116 26 M116 26 L106 36 M116 26 L124 38" },
     { head: [150, 30], mat: true, p: "M150 48 L150 118 M150 58 L120 18 M150 58 L180 18 M146 118 L138 176 M154 118 L162 176" }
@@ -23,11 +36,11 @@ export const FIGURES = {
   ],
   clapLeg: [
     { head: [150, 34], floor: true, p: "M150 52 L150 112 M150 62 L102 64 M150 62 L198 64 M146 112 L142 176 M154 112 L158 176" },
-    { head: [146, 34], floor: true, p: "M146 52 L146 112 M146 112 L146 176 M150 112 L196 98 L202 140 M146 62 L174 112 M146 62 L188 114", arrow: "M168 128 L160 140 M194 128 L198 142" }
+    { head: [146, 34], floor: true, p: "M146 52 L146 112 M146 112 L144 176 M150 112 L194 112 L198 160 M146 62 L170 96 L180 126 M146 62 L158 100 L180 126", marks: "M166 140 L160 148 M180 142 L180 152 M194 140 L200 148" }
   ],
   kneeElbow: [
     { head: [150, 34], floor: true, p: "M150 52 L150 112 M150 64 L110 46 L136 24 M150 64 L190 46 L164 24 M146 112 L142 176 M154 112 L158 176" },
-    { head: [138, 44], floor: true, p: "M142 62 L150 112 M150 112 L146 176 M152 112 L186 96 L180 140 M144 70 L184 92 L156 50 M144 70 L104 56 L128 34", arrow: "M196 78 L190 88" }
+    { head: [148, 34], floor: true, p: "M150 52 L154 112 M156 112 L162 176 M150 112 L116 98 L128 142 M146 62 L110 86 L136 38 M156 62 L188 46 L160 28", arrow: "M98 140 L98 112 M91 119 L98 112 L105 119" }
   ]
 };
 
@@ -53,7 +66,7 @@ const BASE_EXERCISES = {
   },
   latLunge: {
     name: "Боковые выпады", tiers: ["Боковые выпады неглубоко", "Боковые выпады", "Боковые выпады с паузой внизу"],
-    img: "Lateral_Lunge", frames: 2, captions: ["В одну сторону", "В другую"], muscles: "Бёдра, ягодицы, внутренняя поверхность бедра", side: true,
+    img: "Lateral_Lunge", frames: 2, captions: ["В одну сторону", "В другую"], muscles: "Бёдра, ягодицы, внутренняя поверхность бедра",
     cues: ["Широкий шаг в сторону, таз назад", "Одна нога согнута, другая прямая, пятки на полу", "Вернуться и шагнуть в другую сторону"],
     stop: "Стоп, если болит колено: шаг уже, присед мельче."
   },
@@ -181,7 +194,7 @@ const BASE_EXERCISES = {
     cues: ["Вдох носом 4 с", "Выдох 6 с", "Плечи опущены"]
   },
   armCircles: {
-    name: "Шаг на месте и круги руками", img: "Arm_Circles", frames: 2, muscles: "Разогрев",
+    name: "Шаг на месте и круги руками", img: "Arm_Circles", frames: 2, muscles: "Разогрев", half: "Теперь круги назад",
     cues: ["Колени выше", "Руки вращать вперёд и назад", "Дыхание ровное"]
   },
   march: {
@@ -206,6 +219,35 @@ const BASE_EXERCISES = {
     name: "Колено к локтю стоя", figure: "kneeElbow", frames: 2, muscles: "Косые мышцы пресса, кардио",
     cues: ["Руки за головой, шею руками не тянуть", "Колено вверх к противоположному локтю", "Поворот корпусом, стороны по очереди"],
     stop: "Стоп, если болит шея: руки к вискам, а не на затылок."
+  },
+  // office: standing or seated, no floor, no sweat
+  sitStand: {
+    name: "Встать со стула", tiers: ["Встать со стула, помогая руками", "Встать со стула без рук", "Встать со стула, 3 с вниз"],
+    figure: "sitStand", frames: 2, muscles: "Бёдра, ягодицы",
+    cues: ["Сядьте на край стула, стопы на ширине плеч", "Встаньте без рук, руки вперёд для баланса", "Медленно сядьте, едва касаясь стула, и сразу вверх"],
+    stop: "Стоп, если болит колено: возьмите стул повыше."
+  },
+  deskPush: {
+    name: "Отжимания от стола", img: "Pushup_Incline", frames: 1, muscles: "Грудь, плечи, трицепс",
+    home: "Стол должен стоять устойчиво, лучше у стены. На фото та же техника у перил.",
+    cues: ["Руки на край стола чуть шире плеч, шаг назад", "Тело прямое, опустить грудь к краю стола", "Выжать себя вверх, локти под 45° к телу"],
+    stop: "Стоп, если стол шатается: делайте от стены."
+  },
+  scapSqueeze: {
+    name: "Сведение лопаток, руки буквой W", figure: "scapSqueeze", frames: 2, muscles: "Верх спины, лопатки, задняя часть плеч",
+    home: "Схема: вид сзади. Локти уходят назад и вниз, лопатки сводятся друг к другу. Можно сидя.",
+    cues: ["Руки согнуты, локти у корпуса, ладони вперёд: буква W", "Свести лопатки и опустить их вниз, локти назад", "Держать 3 с, шея и плечи расслаблены"],
+    stop: "Стоп, если немеют руки или болит плечо."
+  },
+  soleus: {
+    name: "Подъёмы пяток сидя", figure: "soleus", frames: 2, muscles: "Камбаловидная мышца икры",
+    home: "Можно делать прямо за работой, под столом никто не заметит.",
+    cues: ["Сидя, колени под прямым углом, стопы на полу", "Поднять пятки, носки остаются на полу", "Опустить и сразу снова вверх, в спокойном ритме"]
+  },
+  hipFlexor: {
+    name: "Растяжка бедра стоя", img: "Standing_Hip_Flexors", frames: 2, muscles: "Передняя поверхность бедра, сгибатели бедра", side: true,
+    cues: ["Шаг назад, как в выпаде, рукой можно держаться за стол", "Подкрутить таз: копчик вниз, сжать ягодицу задней ноги", "Натяжение спереди бедра, на середине смените ногу"],
+    stop: "Стоп, если тянет поясницу: шаг короче."
   },
   deepSquat: {
     name: "Глубокий присед", tiers: ["Присед до параллели", "Глубокий присед", "Глубокий присед с паузой"],
@@ -250,7 +292,12 @@ const DETAILS = {
   clapLeg: [5, "Пресс, бёдра и пульс, стоя."],
   kneePush: [4, "Пресс и сгибатели бедра, стоя, без пола."],
   kneeElbow: [5, "Косые мышцы пресса и пульс."],
-  deepSquat: [5.5, "Ноги и подвижность тазобедренных суставов."]
+  deepSquat: [5.5, "Ноги и подвижность тазобедренных суставов."],
+  sitStand: [3.5, "Ноги и ягодицы прямо у рабочего стола: лучшее средство против долгого сидения."],
+  deskPush: [3.8, "Грудь и руки без пола и без пота: держит мышцы в тонусе между тренировками."],
+  scapSqueeze: [2, "Разворачивает плечи после клавиатуры, снимает напряжение между лопатками."],
+  soleus: [1.8, "Работает, даже пока вы печатаете: помогает обмену сахара при сидении."],
+  hipFlexor: [2, "Снимает зажим бёдер от сидения, который тянет поясницу."]
 };
 
 // Demo videos, each checked frame by frame: [YouTube id, label, start s, end s] — only the demonstration plays.
@@ -282,12 +329,17 @@ const VIDEOS = {
   kneeChest1: ["LcIXrI4XLu4", "Колено к груди лёжа · 0:28", 3, 31],
   calfStretch: ["cqUvJzRqKJ8", "Растяжка икр у стены · 0:08"],
   armCircles: ["ZtSWL-2qrkM", "Шаг на месте и круги руками · 0:27", 0, 27],
-  march: ["-PncFy8Q6VY", "Шаг на месте · 0:42", 0, 42],
+  march: ["0U_Gi19HiGo", "Шаг на месте, колени высоко · 0:14"],
   stepJack: ["p3Lbu-ujehU", "Джампинг-джек шагом · 0:15"],
   clapLeg: ["h5WOcepPgq4", "Хлопок под ногой · 0:20"],
   kneePush: ["iFMAHmYijWM", "Колено вверх · 0:20", 0, 20],
   kneeElbow: ["kD9FFca2LLA", "Колено к локтю стоя · 0:20", 0, 20],
-  deepSquat: ["9rAK8aVOl0g", "Глубокий присед · 0:35", 3, 38]
+  deepSquat: ["9rAK8aVOl0g", "Глубокий присед · 0:35", 3, 38],
+  sitStand: ["APSedQvqhdA", "Встать со стула · 0:30", 0, 30],
+  deskPush: ["BaFmZ21SZNM", "Отжимания от стола · 0:18", 12, 30],
+  scapSqueeze: ["5eMmgKzq69s", "Сведение лопаток сидя · 0:27", 3, 30],
+  soleus: ["75rk9SIyhSw", "Подъёмы пяток сидя · 0:33", 3, 36],
+  hipFlexor: ["lXZwdTtZyFA", "Растяжка бедра стоя · 0:27", 3, 30]
 };
 
 // One-line evidence for why each exercise is in the programme (shown under «Почему именно это упражнение»).
@@ -325,7 +377,12 @@ const WHY = {
   kneeElbow: "Косые мышцы и пульс одновременно. Жир на боках так не уходит, но мышцы крепнут.",
   deepSquat: "Глубокий присед поддерживает подвижность тазобедренных и голеностопных суставов, которую забирает сидячая работа.",
   kneeChest1: "Растягивает ягодицы и поясницу по одной стороне.",
-  calfStretch: "Растяжка икр после нагрузки на ноги."
+  calfStretch: "Растяжка икр после нагрузки на ноги.",
+  sitStand: "Короткие перерывы в сидении каждые 20–30 минут снижали сахар и инсулин после еды почти на треть по сравнению с непрерывным сидением (Dunstan и соавт., Diabetes Care, 2012). Встать-сесть нагружает самые большие мышцы, поэтому это лучше, чем просто постоять.",
+  deskPush: "Отжимания с упором выше пола: нагрузка на грудь меньше, но техника та же, что у обычных отжиманий. Чем ниже опора, тем тяжелее (Ebben и соавт., 2011).",
+  scapSqueeze: "Несколько минут упражнений для лопаток и шеи на рабочем месте уменьшали боль в шее и плечах у офисных сотрудников (Andersen и соавт., 2008 и 2011). Там были гантели и резинки; без снарядов эффект слабее, но направление то же.",
+  soleus: "«Камбаловидные отжимания» сидя повышали обмен в мышце и примерно вдвое уменьшали скачок сахара после еды (Hamilton и соавт., iScience, 2022). Исследование небольшое, но упражнение безопасное и незаметное.",
+  hipFlexor: "От сидения передние мышцы бедра укорачиваются и тянут таз вперёд, это нагружает поясницу. Растяжка по 30 с на сторону: рекомендация ACSM для гибкости."
 };
 
 // Spoken rhythm during the work, repeated: [phrase, seconds until the next phrase].
@@ -334,8 +391,10 @@ const WHY = {
 const TEMPO = {
   squat: [["Вниз", 2], ["Вверх", 1.5]],
   deepSquat: [["Вниз", 2.5], ["Вверх", 2]],
-  lunge: [["Шаг назад", 2], ["Вверх", 1.5]],
-  latLunge: [["В сторону", 2], ["Обратно", 1.5]],
+  lunge: [["Правой назад", 2], ["Вверх", 1.5], ["Левой назад", 2], ["Вверх", 1.5]],
+  latLunge: [["Вправо", 2], ["Обратно", 1.5], ["Влево", 2], ["Обратно", 1.5]],
+  march: [["Колени выше", 6], ["Руки работают", 6]],
+  armCircles: [["Шагаем, круги руками", 8]],
   bridge: [["Таз вверх", 1.5], ["Сожми", 1.5], ["Вниз", 2]],
   calf: [["Вверх", 1], ["Пауза", 1], ["Вниз", 2]],
   pushup: [["Вниз", 2], ["Вверх", 1.5]],
@@ -356,10 +415,14 @@ const TEMPO = {
   stepJack: [["Шаг, руки вверх", 1.8], ["Руки вниз", 1.8]],
   clapLeg: [["Правая, хлопок", 1.8], ["Левая, хлопок", 1.8]],
   kneePush: [["Колено вверх", 1], ["Толкай", 2], ["Вниз", 1]],
-  kneeElbow: [["Колено к локтю", 1.8], ["Другая сторона", 1.8]]
+  kneeElbow: [["Колено к локтю", 1.8], ["Другая сторона", 1.8]],
+  sitStand: [["Встали", 1.8], ["Сели, едва касаясь", 2.5]],
+  deskPush: [["Вниз", 2], ["Вверх", 1.5]],
+  scapSqueeze: [["Свести лопатки", 1.5], ["Держи", 3], ["Отпусти", 1.5]],
+  soleus: [["Пятки вверх", 1.3], ["Вниз", 1.3]]
 };
 // Static holds and stretches: the voice counts down instead of a rhythm.
-const HOLDS = new Set(["plank", "sideplank", "neckStretch", "child", "kneesChest", "kneeChest1", "calfStretch"]);
+const HOLDS = new Set(["hipFlexor", "plank", "sideplank", "neckStretch", "child", "kneesChest", "kneeChest1", "calfStretch"]);
 // The hardest moves get at least 30 s of rest afterwards, whatever the level.
 const HEAVY = new Set(["burpee", "climber", "pushup", "pike"]);
 
@@ -397,7 +460,12 @@ const MAP = {
   stepJack: [["delts", "calves"], ["quads"]],
   clapLeg: [["abs"], ["quads", "delts"]],
   kneePush: [["abs"], ["quads"]],
-  kneeElbow: [["obliques", "abs"], ["quads"]]
+  kneeElbow: [["obliques", "abs"], ["quads"]],
+  sitStand: [["quads", "glutes"], ["hams", "abs"]],
+  deskPush: [["chest", "triceps", "delts"], ["abs"]],
+  scapSqueeze: [["upperBack"], ["delts", "neckB"]],
+  soleus: [["calves"], []],
+  hipFlexor: [["quads"], ["abs", "glutes"]]
 };
 
 // Body position: switching between standing and floor gets a longer rest.
@@ -422,6 +490,8 @@ export const COOLDOWN = [["calfStretch", 60], ["child", 60], ["kneeChest1", 60],
 export const LIGHT_FLOW = [["kneesChest", 45], ["bridge", 60], ["deadbug", 60], ["superman", 45], ["cat", 60], ["birdDog", 90], ["child", 45], ["chinTuck", 60], ["neckFront", 90], ["neckSide", 90], ["neckStretch", 60], ["breathe", 60]];
 export const MORNING_FLOW = [["kneesChest", 45], ["bridge", 60], ["cat", 60], ["birdDog", 90], ["child", 30], ["chinTuck", 60]];
 export const CHIN_FLOW = [["headLift", 60], ["chinTuck", 60], ["chinLift", 75], ["neckFront", 90], ["neckSide", 90], ["neckStretch", 60]];
+// Office, ≈6 min: big legs first to break the sitting, then push, shoulder blades and neck, seated calves, stretches last.
+export const OFFICE_FLOW = [["sitStand", 40], ["deskPush", 40], ["scapSqueeze", 40], ["chinTuck", 40], ["soleus", 45], ["hipFlexor", 60], ["neckStretch", 60]];
 export const STAND_WARM = [["march", 60], ["stepJack", 60]];
 export const STAND_LIST = ["clapLeg", "kneePush", "kneeElbow", "deepSquat"];
 export const STAND_SHAPE = { work: 40, rest: 20, rounds: 3 };
@@ -446,8 +516,9 @@ export const LEVELS = [
   { work: 30, rest: 30, rounds: 4 },
   { work: 35, rest: 25, rounds: 4 },
   { work: 40, rest: 20, rounds: 4 },
-  { work: 45, rest: 20, rounds: 4 },
-  { work: 50, rest: 20, rounds: 4 }
+  // Levels 5–6: longer sets and harder variants, one round less, so the session stays near 30 min.
+  { work: 45, rest: 20, rounds: 3 },
+  { work: 50, rest: 20, rounds: 3 }
 ];
 
 export const MET = { warm: 3.5, cool: 2.5, rest: 2.5, prep: 2, flow: 2.8, work: { A: 8, B: 7, C: 9.5, stand: 5 } };

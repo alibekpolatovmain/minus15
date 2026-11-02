@@ -208,3 +208,38 @@ test("every exercise has a short demo video: at most 90 s plays", () => {
     assert.ok(played <= 90, `${key} plays ${played} s`);
   }
 });
+
+test("office routine: 5–7 minutes, nothing on the floor, every move voiced and with a video", () => {
+  const session = buildSession("office", null, 2, 4);
+  const min = sessionTotals(session, 95).seconds / 60;
+  assert.ok(min >= 5 && min <= 7, `office ${min}`);
+  const keys = session.steps.filter((s) => s.phase === "flow").map((s) => s.ex);
+  assert.ok(keys.length >= 6, "too few moves");
+  keys.forEach((k) => {
+    assert.equal(EXERCISES[k].pos, "stand", `${k} is on the floor`);
+    assert.ok(EXERCISES[k].tempo || EXERCISES[k].hold, `${k} has no voice`);
+    assert.ok(EXERCISES[k].video, `${k} has no video`);
+    assert.ok(EXERCISES[k].map, `${k} has no muscle map`);
+  });
+  session.steps.forEach((s, i) => { if (s.phase === "flow") assert.equal(session.steps[i - 1].phase, "prep"); });
+});
+
+test("a full strength session stays within ~30–36 min on every level", () => {
+  LEVELS.forEach((lv, i) => {
+    for (const t of ["A", "B", "C"]) {
+      const min = sessionTotals(buildSession(t, t, i + 1, lv.rounds), 95).seconds / 60;
+      assert.ok(min <= 36, `level ${i + 1} ${t}: ${min.toFixed(1)} min`);
+    }
+  });
+});
+
+test("warm-up moves are voiced too", () => {
+  buildSession("A", "A", 2, 4).steps.filter((s) => s.phase === "warm").forEach((s) => assert.ok(EXERCISES[s.ex].tempo || EXERCISES[s.ex].hold, `${s.ex} silent`));
+});
+
+test("alternating moves never also ask to switch sides at half-time", () => {
+  for (const [k, ex] of Object.entries(EXERCISES)) {
+    const alternates = ex.tempo?.some(([w]) => /^(Прав|Лев|Вправо|Влево)/.test(w));
+    assert.ok(!(alternates && ex.side), `${k} alternates and switches sides`);
+  }
+});

@@ -9,8 +9,8 @@ const BACK_DOUBLE_MS = 2000;
 const MIN_WORK_TO_RECORD_S = 60;
 const PHASE = { warm: "РАЗМИНКА", work: "РАБОТА", rest: "ОТДЫХ", cool: "ЗАМИНКА", flow: "СПИНА И ШЕЯ", prep: "ПРИГОТОВЬСЯ" };
 const PAUSE_LIKE = new Set(["rest", "prep"]);
-const SOFT_KINDS = new Set(["light", "stand", "morning", "chin"]);
-const FLOW_LABEL = { morning: "УТРО", chin: "ПОДБОРОДОК", light: "СПИНА И ШЕЯ" };
+const SOFT_KINDS = new Set(["light", "stand", "morning", "chin", "office"]);
+const FLOW_LABEL = { morning: "УТРО", chin: "ПОДБОРОДОК", light: "СПИНА И ШЕЯ", office: "ОФИС" };
 const NUM_WORDS = ["", "один", "два", "три", "четыре", "пять", "шесть"];
 const NUM_GEN = ["", "одного", "двух", "трёх", "четырёх", "пяти", "шести"];
 // Spoken rhythm: starts after «Начали!», keeps quiet for the side switch and the final 3-2-1 beeps.
@@ -21,6 +21,8 @@ const SIDE_QUIET_MS = 2500;
 const TEMPO_RATE = 1.15;
 const HOLD_EVERY_S = 10;
 const COUNTDOWN_FROM_S = 3;
+// Warm-up moves are done slower than in the circuit.
+const WARM_TEMPO_SCALE = 1.5;
 
 let run = null;
 const $ = (id) => document.getElementById(id);
@@ -106,7 +108,7 @@ function rhythm(step, now, left) {
     if (now < run.tempoAt) return;
     const [word, sec] = ex.tempo[run.tempoIdx % ex.tempo.length];
     run.tempoIdx += 1;
-    run.tempoAt = now + sec * 1000;
+    run.tempoAt = now + sec * 1000 * (step.phase === "warm" ? WARM_TEMPO_SCALE : 1);
     $("t-beat").textContent = word;
     say(word, TEMPO_RATE);
     return;
@@ -132,8 +134,8 @@ function render() {
   const isRest = step.phase === "rest";
   const upcoming = stepName({ ...step, label: isRest ? null : step.label });
   $("t-name").textContent = step.roundBreak ? "Отдых между кругами" : isRest ? `Дальше: ${upcoming}` : upcoming;
-  $("t-cue").textContent = run.ready ? `${run.intro ? run.intro + " " : ""}Нажмите «Начать»: 10 секунд, чтобы встать на место, дальше голос ведёт сам` : step.roundBreak ? `Попейте воды. Потом круг ${step.round}: «${upcoming}»` : EXERCISES[step.ex].cues[0];
-  $("t-media").innerHTML = frameHtml(step.ex, 0);
+  $("t-cue").textContent = run.ready ? `${run.intro ? run.intro + " " : ""}${step.phase === "prep" ? "Нажмите «Начать»: 10 секунд, чтобы встать на место, дальше голос ведёт сам" : "Нажмите «Начать», дальше голос ведёт сам"}` : step.roundBreak ? `Попейте воды. Потом круг ${step.round}: «${upcoming}»` : EXERCISES[step.ex].cues[0];
+  $("t-media").innerHTML = frameHtml(step.ex, 0, run.level);
   $("t-next").innerHTML = PAUSE_LIKE.has(step.phase) ? "" : next ? `<span>Потом:</span> ${esc(stepName(next))}` : "Последнее упражнение";
   $("t-pause").textContent = run.ready ? "Начать" : run.paused ? "Продолжить" : "Пауза";
   $("t-stop").hidden = !run.paused || run.ready;
@@ -197,10 +199,10 @@ function tick() {
     say(ex.half || "Смени сторону");
   }
   if (!PAUSE_LIKE.has(step.phase)) rhythm(step, now, left);
-  if (frameCount(step.ex) === 2 && !PAUSE_LIKE.has(step.phase) && now >= run.flipAt) {
+  if (frameCount(step.ex, run.level) === 2 && !PAUSE_LIKE.has(step.phase) && now >= run.flipAt) {
     run.frame = 1 - run.frame;
     run.flipAt = now + FLIP_MS;
-    $("t-media").innerHTML = frameHtml(step.ex, run.frame);
+    $("t-media").innerHTML = frameHtml(step.ex, run.frame, run.level);
   }
   if (left <= 0) {
     leave();
