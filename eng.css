@@ -1,0 +1,67 @@
+/* «Английский»: same iOS grammar as styles.css and neg.css; English gets a warm orange accent. */
+:root { --eng: #C2410C; --eng-soft: #FDEBDD; --on-eng: #FFFFFF; }
+@media (prefers-color-scheme: dark) {
+  :root { --eng: #FF9F5A; --eng-soft: #33200F; --on-eng: #1F0E02; }
+}
+body[data-mod="eng"], body[data-mod="eng"] .drill { --accent: var(--eng); --accent-soft: var(--eng-soft); --on-accent: var(--on-eng); }
+#mod-eng { display: grid; }
+#mod-eng[hidden] { display: none; }
+#mod-eng > .home-link { justify-self: start; width: 100%; }
+.hub-tile.eng .hub-icon { background: var(--eng-soft); color: var(--eng); }
+
+/* word card */
+.en-hero { display: grid; justify-items: center; gap: 4px; text-align: center; }
+.en-emoji { font-size: 72px; line-height: 1.1; }
+.en-word-row { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.en-word { font-size: 36px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; overflow-wrap: anywhere; }
+.en-tr { font-size: 20px; color: var(--accent); font-weight: 600; }
+.en-ru { font-size: 26px; font-weight: 700; text-align: center; }
+.en-say { width: 48px; height: 48px; border-radius: 24px; border: 0; background: var(--accent-soft); font-size: 20px; cursor: pointer; flex: none; }
+.en-mn { background: var(--accent-soft); border-radius: 14px; padding: 12px 14px; display: grid; gap: 4px; }
+.en-mn .eyebrow { color: var(--accent); }
+.en-mn p { font-size: 17px; }
+.en-ex p { font-size: 20px; }
+.en-ex small { display: block; font-size: 15px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+.en-note { justify-self: center; }
+.en-card .badge.en-again { justify-self: start; background: var(--warn-soft); color: var(--warn); margin: 0; }
+
+/* actions */
+.en-foot { position: sticky; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); padding-top: 6px; background: var(--bg); }
+.en-grade .btn { padding: 0 6px; font-size: 16px; }
+.en-grade .btn.forgot { background: var(--bad-soft); color: var(--bad); box-shadow: none; }
+.en-grade .btn.hard { background: var(--warn-soft); color: var(--warn); box-shadow: none; }
+.en-play { justify-self: center; width: 96px; height: 96px; border-radius: 48px; border: 0; background: var(--accent); color: var(--on-accent); font-size: 38px; cursor: pointer; }
+.en-play:active { transform: scale(0.96); }
+.en-card > .row2 .btn { width: 100%; }
+.en-top-actions { display: flex; gap: 8px; }
+
+/* phrases you can say */
+.en-say-now { display: grid; gap: 8px; }
+.en-phrase { display: grid; gap: 2px; text-align: left; background: var(--card); border: 0; border-radius: 14px; padding: 12px 16px; min-height: 56px; cursor: pointer; color: var(--ink); font: inherit; }
+.en-phrase b { font-size: 18px; }
+.en-phrase b::after { content: "  🔊"; font-size: 14px; }
+.en-phrase small { font-size: 14px; color: var(--muted); }
+
+/* today */
+.en-cov-btn { border: 0; text-align: left; cursor: pointer; color: var(--ink); font: inherit; }
+.en-cov-btn b { color: var(--accent); }
+
+/* word list */
+.en-search { font-size: 17px; }
+.en-seg { grid-template-columns: repeat(4, 1fr); }
+.en-pace { grid-template-columns: repeat(4, 1fr); }
+.en-list { display: grid; gap: 6px; }
+.en-pack { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 12px 0 2px; }
+.en-row { grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 56px; padding: 8px 14px; color: var(--ink); font: inherit; }
+.en-row-emoji { font-size: 26px; text-align: center; }
+.en-row-text { display: grid; min-width: 0; }
+.en-row-text b, .en-row-text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-item.en-row::after { content: none; }
+.en-dots { font-style: normal; font-size: 11px; letter-spacing: 2px; color: var(--muted); }
+.en-row.learning .en-dots { color: var(--accent); }
+.en-row.known .en-dots { color: var(--good); }
+.en-row.new { opacity: 0.75; }
+
+@media (prefers-reduced-motion: reduce) {
+  .en-play:active { transform: none; }
+}

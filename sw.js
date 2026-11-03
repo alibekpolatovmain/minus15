@@ -1,5 +1,5 @@
 // Offline cache for the home-screen app. Bump CACHE_VERSION on every release.
-const CACHE_VERSION = "minus15-v26";
+const CACHE_VERSION = "minus15-v27";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -10,6 +10,7 @@ const PRECACHE = [
   "./styles.css",
   "./neg.css",
   "./speech.css",
+  "./eng.css",
   "./js/shell.js",
   "./js/neg/index.js",
   "./js/neg/content.js",
@@ -24,6 +25,18 @@ const PRECACHE = [
   "./js/neg/rescue.js",
   "./js/neg/pitch.js",
   "./js/neg/today.js",
+  "./js/eng/index.js",
+  "./js/eng/srs.js",
+  "./js/eng/store.js",
+  "./js/eng/audio.js",
+  "./js/eng/words.js",
+  "./js/eng/session.js",
+  "./js/eng/method.js",
+  "./js/eng/words/w1.js",
+  "./js/eng/words/w2.js",
+  "./js/eng/words/w3.js",
+  "./js/eng/words/w4.js",
+  "./js/eng/words/w5.js",
   "./js/speech/index.js",
   "./js/speech/content.js",
   "./js/speech/analyze.js",
