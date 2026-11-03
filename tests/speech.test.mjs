@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { tokens, fillerCounts, usedWordIds, overused, speechStats, blankOut } from "../js/speech/analyze.js";
-import { planSession, recordUses, activeIds, ACTIVE_DAYS, ORDER } from "../js/speech/plan.js";
+import { planSession, recordUses, activeIds, ACTIVE_DAYS, ORDER, FIRST_TOPICS, LATER_TOPICS } from "../js/speech/plan.js";
 import { validate } from "../js/speech/store.js";
 import { TOPICS, WORDS, PARAPHRASE, CLEANUP, PROMPTS } from "../js/speech/content.js";
 
@@ -73,10 +73,13 @@ test("a session has today's words, one paraphrase, one cleanup and an improvisat
   assert.deepEqual(p.targets, p.wordIds.map((id) => id.slice(2)));
 });
 
-test("new words alternate between topics and every word is in the order once", () => {
+test("beautiful topics come first, alternating, and plain business words come after them", () => {
   const topic = (id) => WORDS.find((w) => `w:${w.id}` === id).topic;
-  assert.equal(new Set(ORDER.slice(0, TOPICS.length).map(topic)).size, TOPICS.length);
+  assert.deepEqual([...new Set(ORDER.slice(0, FIRST_TOPICS.length).map(topic))].sort(), [...FIRST_TOPICS].sort());
+  const firstCount = WORDS.filter((w) => FIRST_TOPICS.includes(w.topic)).length;
+  assert.ok(ORDER.slice(firstCount).every((id) => LATER_TOPICS.includes(topic(id))));
   assert.equal(new Set(ORDER).size, WORDS.length);
+  assert.deepEqual([...FIRST_TOPICS, ...LATER_TOPICS].sort(), TOPICS.map((t) => t.id).sort());
 });
 
 test("drills rotate with the number of finished sessions", () => {
@@ -116,11 +119,11 @@ test("stored data is cleaned: bad cards, dates and logs are dropped", () => {
   assert.deepEqual(validate("junk").cards, {});
 });
 
-test("content: 8 topics, 200 unique words, 25 per topic, all fields filled", () => {
-  assert.equal(TOPICS.length, 8);
-  assert.equal(WORDS.length, 200);
-  assert.equal(new Set(WORDS.map((w) => w.id)).size, 200);
-  assert.equal(new Set(WORDS.map((w) => w.word)).size, 200);
+test("content: 14 topics, 350 unique words, 25 per topic, all fields filled", () => {
+  assert.equal(TOPICS.length, 14);
+  assert.equal(WORDS.length, 350);
+  assert.equal(new Set(WORDS.map((w) => w.id)).size, 350);
+  assert.equal(new Set(WORDS.map((w) => w.word.toLowerCase())).size, 350);
   TOPICS.forEach((t) => assert.equal(WORDS.filter((w) => w.topic === t.id).length, 25, t.id));
   WORDS.forEach((w) => {
     assert.match(w.id, /^[a-z0-9-]{1,30}$/, w.id);

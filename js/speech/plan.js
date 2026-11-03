@@ -2,10 +2,17 @@
 import { pickDaily } from "../neg/srs.js";
 import { WORDS, PARAPHRASE, CLEANUP, PROMPTS } from "./content.js";
 
-/** Topics take turns so every session mixes a verb, an image and a linking phrase instead of 25 verbs in a row. */
-const TOPIC_TURNS = ["verbs", "idioms", "links", "eval", "strong", "deal", "ideas", "people"];
-const byTopic = TOPIC_TURNS.map((t) => WORDS.filter((w) => w.topic === t));
-export const ORDER = byTopic[0].flatMap((_, n) => byTopic.map((list) => list[n]).filter(Boolean)).map((w) => `w:${w.id}`);
+/** Beautiful and literary words first; plain business words most people already use come after them. */
+export const FIRST_TOPICS = ["beauty", "literary", "wings", "verbs2", "idioms", "rare", "links", "soul"];
+export const LATER_TOPICS = ["strong", "verbs", "eval", "ideas", "deal", "people"];
+
+/** Topics take turns so a session mixes an epithet, an image and a verb instead of 25 of one kind in a row. */
+function alternate(topics) {
+  const lists = topics.map((t) => WORDS.filter((w) => w.topic === t));
+  const longest = Math.max(0, ...lists.map((l) => l.length));
+  return Array.from({ length: longest }, (_, n) => lists.map((l) => l[n]).filter(Boolean)).flat();
+}
+export const ORDER = [...alternate(FIRST_TOPICS), ...alternate(LATER_TOPICS)].map((w) => `w:${w.id}`);
 /** «Уже использую»: a known word skips learning and comes back for a check in two weeks. */
 export const KNOWN_CARD = Object.freeze({ box: 4, days: 14 });
 export const DAILY = Object.freeze({ total: 7, newPerDay: 3 });

@@ -152,7 +152,7 @@ function wordRow(w) {
 }
 
 function renderDict() {
-  return `<header class="large-title"><h1>Словарь</h1><p>${WORDS.length} слов и выражений для деловой речи</p></header>
+  return `<header class="large-title"><h1>Словарь</h1><p>${WORDS.length} слов и выражений для красивой речи</p></header>
     ${TOPICS.map((t) => {
       const list = WORDS.filter((w) => w.topic === t.id);
       const ok = list.filter((w) => db.active[w.id]?.length >= ACTIVE_DAYS).length;
