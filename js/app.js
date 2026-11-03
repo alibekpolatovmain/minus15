@@ -1,4 +1,4 @@
-// Screens: onboarding, «Сегодня», «Дневник», «Справка». Owns the database object.
+// «Спорт»: onboarding, «Сегодня», «Дневник», «Справка». Owns the workout database object.
 import { WORKOUTS, EXERCISES } from "./data.js";
 import {
   nextSession, buildSession, sessionTotals, sessionExercises, exerciseBreakdown, applyFeedback, isoDate, addDays, daysBetween,
@@ -837,6 +837,18 @@ function render() {
   if (tab === "diary") renderDiary();
   $("opt-sound").checked = db.sound;
   $("opt-tempo").checked = db.tempo;
+}
+
+/** One line for the home screen tile. */
+export function sportSummary() {
+  if (!db.startDate) return { main: "Настроить за минуту", extra: "", done: false };
+  const plan = nextSession(db, today());
+  if (db.startDate > today()) return { main: `Старт через ${daysBetween(today(), db.startDate)} дн.`, extra: "", done: false };
+  if (plan.status === "done") return { main: `${kindTitle(plan.doneSession.kind, plan.doneSession.type)} ✓`, extra: `${fmtKm(dayOf(today()).km)} км ходьбы сегодня`, done: true };
+  if (plan.status === "light" && plan.lightToday) return { main: "Мягкий день сделан ✓", extra: "Можно добавить прогулку", done: true };
+  const kind = plan.status === "light" ? "light" : plan.mainKind;
+  const session = plan.status === "light" ? planFor("light", null, plan.params) : planFor(plan.mainKind, plan.type, plan.params);
+  return { main: `Сегодня: ${kindTitle(kind, plan.type)}`, extra: `${minLabel(session)} · ≈${kcalOf(session)} ккал`, done: false };
 }
 
 function init() {
