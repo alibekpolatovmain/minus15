@@ -1,5 +1,5 @@
 // Offline cache for the home-screen app. Bump CACHE_VERSION on every release.
-const CACHE_VERSION = "minus15-v25";
+const CACHE_VERSION = "minus15-v26";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -103,8 +103,25 @@ const PRECACHE = [
   "./img/Superman_1.jpg",
 ];
 
+// GitHub Pages' CDN keeps serving the old copy of a path for a while after a release. A «?v=» query is a new
+// address for the CDN, so every release is fetched from the origin and stored under the plain path.
+const fresh = (url, cache = "no-store") => {
+  const u = new URL(url, self.location);
+  u.searchParams.set("v", CACHE_VERSION);
+  return fetch(u, { cache });
+};
+// Code is re-checked in the background on every launch; images and icons never change, so they stay cache-first.
+const CODE_RE = /\.(js|css)$/;
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting()));
+  event.waitUntil(
+    caches.open(CACHE_VERSION)
+      .then((cache) => Promise.all(PRECACHE.map((path) => fresh(path).then((res) => {
+        if (!res.ok) throw new Error(`precache ${path}: ${res.status}`);
+        return cache.put(path, res);
+      }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener("activate", (event) => {
@@ -115,9 +132,8 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Network-first for the page (so updates arrive). Everything else: answer from the cache at once and refresh it
-// in the background, because GitHub Pages' CDN can serve a stale file for ~10 minutes after a release and that
-// copy would otherwise stay in the cache until the next version.
+// Network-first for the page (so updates arrive). Code: answer from the cache at once and refresh it in the
+// background, so a stale copy cached during a release heals on the next launch.
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
@@ -129,10 +145,15 @@ self.addEventListener("fetch", (event) => {
     );
     return;
   }
-  const fresh = fetch(request, { cache: "no-cache" }).then((res) => {
+  if (!CODE_RE.test(new URL(request.url).pathname)) {
+    event.respondWith(caches.match(request).then((hit) => hit || fetch(request)));
+    return;
+  }
+  // «no-cache» revalidates by ETag, so an unchanged file costs a short «304 Not Modified».
+  const update = fresh(request.url, "no-cache").then((res) => {
     if (res.ok) { const copy = res.clone(); caches.open(CACHE_VERSION).then((c) => c.put(request, copy)); }
     return res;
   });
-  event.respondWith(caches.match(request).then((hit) => hit || fresh));
-  event.waitUntil(fresh.catch(() => null));
+  event.respondWith(caches.match(request).then((hit) => hit || update));
+  event.waitUntil(update.catch(() => null));
 });
