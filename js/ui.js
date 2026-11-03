@@ -7,6 +7,16 @@ export const MONTHS = ["января", "февраля", "марта", "апре
 
 export const IMG = (id, n, ext = "jpg") => `img/${id}_${n}.${ext}`;
 
+/** Reads a Russian line aloud with the system voice; quotes are dropped so they are not pronounced. */
+export function speak(text) {
+  if (!("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text.replace(/[«»]/g, ""));
+  u.lang = "ru-RU";
+  u.rate = 0.95;
+  speechSynthesis.speak(u);
+}
+
 export function esc(text) {
   return String(text).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
 }
@@ -177,6 +187,16 @@ export function toast(text) {
   el.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.hidden = true; }, 3500);
+}
+
+/** Russian plural: plural(5, "день", "дня", "дней") → "дней". */
+export function plural(n, one, few, many) {
+  const a = Math.abs(n) % 100;
+  const b = a % 10;
+  if (a > 10 && a < 20) return many;
+  if (b === 1) return one;
+  if (b >= 2 && b <= 4) return few;
+  return many;
 }
 
 export const fmt1 = (n) => (Math.round(n * 10) / 10).toFixed(1).replace(".", ",");

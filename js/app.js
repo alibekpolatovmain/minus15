@@ -5,7 +5,7 @@ import {
   daysSinceHard, isHard, hardInLast7, weekIndex, RULES
 } from "./plan.js";
 import { load, save, exportFile, importFile, saveDraft, takeDraft, clearDraft } from "./store.js";
-import { esc, exName, seenKey, frameHtml, howToHtml, openSheet, closeSheet, bindSheet, toast, fmt1, fmtKm, kcalPerMin, bindVideos, MONTHS } from "./ui.js";
+import { esc, exName, seenKey, frameHtml, howToHtml, openSheet, closeSheet, bindSheet, toast, fmt1, fmtKm, kcalPerMin, bindVideos, MONTHS, plural } from "./ui.js";
 import { startTimer, bindTimer } from "./timer.js";
 import { netWorkoutKcal, monthChange, bodyFor } from "./forecast.js";
 import { dynamicsSheet, askProfile } from "./dynamics.js";
@@ -54,14 +54,6 @@ function kindTitle(kind, type, video = null) {
 function planFor(kind, type, params) {
   const level = SOFT_KINDS.has(kind) ? db.level : params.level;
   return buildSession(kind, type, level, params.rounds);
-}
-function plural(n, one, few, many) {
-  const a = Math.abs(n) % 100;
-  const b = a % 10;
-  if (a > 10 && a < 20) return many;
-  if (b === 1) return one;
-  if (b >= 2 && b <= 4) return few;
-  return many;
 }
 function minLabel(session) {
   const m = minutesOf(session);

@@ -1,5 +1,5 @@
 // Offline cache for the home-screen app. Bump CACHE_VERSION on every release.
-const CACHE_VERSION = "minus15-v22";
+const CACHE_VERSION = "minus15-v23";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -9,6 +9,7 @@ const PRECACHE = [
   "./icons/apple-touch-icon.png",
   "./styles.css",
   "./neg.css",
+  "./speech.css",
   "./js/shell.js",
   "./js/neg/index.js",
   "./js/neg/content.js",
@@ -19,6 +20,14 @@ const PRECACHE = [
   "./js/neg/prep.js",
   "./js/neg/cheatsheet.js",
   "./js/neg/playbook.js",
+  "./js/speech/index.js",
+  "./js/speech/content.js",
+  "./js/speech/analyze.js",
+  "./js/speech/plan.js",
+  "./js/speech/store.js",
+  "./js/speech/session.js",
+  "./js/speech/improv.js",
+  "./js/speech/recorder.js",
   "./js/app.js",
   "./js/data.js",
   "./js/plan.js",

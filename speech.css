@@ -1,0 +1,31 @@
+/* «Речь»: same iOS grammar as styles.css and neg.css, with its own teal accent. */
+:root { --speech: #0B7A63; --speech-soft: #DDF2EB; --on-speech: #FFFFFF; }
+@media (prefers-color-scheme: dark) {
+  :root { --speech: #4FD1B0; --speech-soft: #0F2E27; --on-speech: #04201A; }
+}
+body[data-mod="speech"], body[data-mod="speech"] .drill { --accent: var(--speech); --accent-soft: var(--speech-soft); --on-accent: var(--on-speech); }
+
+#mod-speech { display: grid; }
+#mod-speech[hidden] { display: none; }
+#mod-speech > .home-link { justify-self: start; width: 100%; }
+.hub-tile.speech .hub-icon { background: var(--speech-soft); color: var(--speech); }
+
+/* main screen */
+.sp-big { font-size: 18px; }
+.sp-big b { font-size: 34px; font-weight: 800; color: var(--accent); margin-right: 4px; }
+
+/* dictionary */
+.sp-head { display: grid; padding: 8px 0; }
+.sp-head small { font-size: 14px; font-weight: 400; color: var(--muted); }
+.sp-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.sp-stress { font-size: 20px; font-weight: 700; }
+.badge.sp-learning { background: var(--accent-soft); color: var(--accent); }
+
+/* session */
+.sp-word { display: flex; align-items: center; gap: 12px; }
+.sp-word .dr-speak { position: static; flex: none; background: var(--card); }
+.dr-line mark { background: var(--warn-soft); color: var(--warn); border-radius: 6px; padding: 0 2px; }
+.chip.hit { background: var(--good-soft); color: var(--good); }
+.chip.miss { background: var(--bad-soft); color: var(--bad); }
+.im-clock { font-size: 64px; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; line-height: 1; color: var(--accent); }
+.im-live { min-height: 120px; background: var(--card); border-radius: 16px; padding: 14px 16px; font-size: 18px; line-height: 1.45; }
