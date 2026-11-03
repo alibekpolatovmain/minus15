@@ -61,12 +61,14 @@ export function planDay(order, cards, today, pace = DEFAULT_PACE) {
   const due = ids
     .filter((id) => isDue(cards[id], today))
     .sort((a, b) => (cards[a].due === cards[b].due ? cards[a].box - cards[b].box : cards[a].due < cards[b].due ? -1 : 1));
-  const prodToday = order.filter((w) => cards[prodId(w)]?.first === today).length;
+  // Words marked known (test, «Уже знаю») are not new work, so they do not use up today's quota.
+  const metToday = (id) => cards[id]?.first === today && cards[id].box < KNOWN_BOX;
+  const prodToday = order.filter((w) => metToday(prodId(w))).length;
   const prod = order
     .filter((w) => !cards[prodId(w)] && (cards[recId(w)]?.box ?? -1) >= PROD_BOX)
     .slice(0, Math.max(0, PROD_PER_DAY - prodToday));
-  const metToday = order.filter((w) => cards[recId(w)]?.first === today).length;
-  const fresh = order.filter((w) => !cards[recId(w)]).slice(0, Math.max(0, newQuota(pace, due.length) - metToday));
+  const freshToday = order.filter((w) => metToday(recId(w))).length;
+  const fresh = order.filter((w) => !cards[recId(w)]).slice(0, Math.max(0, newQuota(pace, due.length) - freshToday));
   return { reviews: due.slice(0, REVIEW_CAP), prod, fresh, backlog: due.length };
 }
 

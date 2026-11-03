@@ -33,8 +33,8 @@ export function buildQueue({ reviews, prod, fresh }, cards) {
 }
 
 /** Three wrong meanings from other packs: unrelated words are not confused with each other. */
-export function optionsFor(w) {
-  const pool = shuffled(WORDS.filter((o) => o.pack !== w.pack && o.ru !== w.ru)).slice(0, OPTIONS - 1);
+export function optionsFor(w, from = WORDS) {
+  const pool = shuffled(from.filter((o) => o.pack !== w.pack && o.ru !== w.ru)).slice(0, OPTIONS - 1);
   return shuffled([w, ...pool]);
 }
 

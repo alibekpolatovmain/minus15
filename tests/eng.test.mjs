@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { grade, introduced, alreadyKnown, planDay, newQuota, coverage, streakAfter, streakNow, GRADE, INTERVALS, KNOWN_BOX } from "../js/eng/srs.js";
 import { validate } from "../js/eng/store.js";
 import { WORDS, PACKS, slug } from "../js/eng/words.js";
+import { startFrom, courseOrder, testSample, knownEstimate, shouldContinue, TEST_PER_LEVEL } from "../js/eng/levels.js";
 
 const T = "2026-11-03";
 
@@ -87,10 +88,38 @@ test("slug makes stable storage ids", () => {
   assert.equal(slug("I'm"), "im");
 });
 
-test("the course has 1000 unique words in packs of 10, each with a translation, hint and phrase", () => {
-  assert.equal(WORDS.length, 1000);
+test("the course: 1000 base words in packs of 10, level packs of 5–12, all unique, each with a translation, hint and phrase", () => {
+  assert.equal(WORDS.filter((w) => w.base).length, 1000);
   assert.equal(new Set(WORDS.map((w) => w.id)).size, WORDS.length);
-  assert.ok(PACKS.every((p) => p.size === 10 && p.title));
+  assert.ok(PACKS.filter((p) => !p.lv).every((p) => p.size === 10 && p.title));
+  assert.ok(PACKS.filter((p) => p.lv).every((p) => p.size >= 5 && p.size <= 12 && p.title));
+  assert.ok(WORDS.every((w) => ["A1", "A2", "B1", "B2", "C1"].includes(w.lv)));
   const broken = WORDS.filter((w) => !w.id || !w.ru || !w.tr || !w.e || !w.ex || !w.exRu);
   assert.deepEqual(broken.map((w) => w.en), []);
+});
+
+test("the course starts at the first level not passed in the test", () => {
+  assert.equal(startFrom({ A1: 6, A2: 5, B1: 3 }), "B1");
+  assert.equal(startFrom({ A1: 4 }), "A1");
+  assert.equal(startFrom({ A1: 6, A2: 6, B1: 6, B2: 5, C1: 6 }), "C1");
+  assert.equal(shouldContinue(2), false);
+});
+
+test("words below the start level leave the course order", () => {
+  const words = [{ id: "a", lv: "A1" }, { id: "b", lv: "B1" }, { id: "c", lv: "A2" }, { id: "d", lv: "C1" }];
+  assert.deepEqual(courseOrder(words, "B1"), ["b", "d"]);
+  assert.deepEqual(courseOrder(words, null), ["a", "b", "c", "d"]);
+});
+
+test("the test takes six words of every level and estimates known words by level", () => {
+  const sample = testSample(WORDS);
+  const levels = [...new Set(WORDS.map((w) => w.lv))];
+  assert.equal(sample.length, levels.length * TEST_PER_LEVEL);
+  const a1 = WORDS.filter((w) => w.lv === "A1").length;
+  assert.equal(knownEstimate({ A1: 6 }, WORDS), a1);
+});
+
+test("words marked known today do not use up the new-word quota", () => {
+  const cards = { "r:a": { box: 3, due: "2026-11-10", first: T }, "r:b": { box: 1, due: "2026-11-04", first: T } };
+  assert.deepEqual(planDay(["a", "b", "c", "d"], cards, T, 2).fresh, ["c"]);
 });

@@ -1,10 +1,18 @@
 // «Как учить»: pace and sound settings, the method in plain words, sources.
 import { PACE_OPTIONS } from "./srs.js";
+import { LEVELS, LEVEL_NAMES } from "./levels.js";
 
 const PACE_NOTE = { 5: "≈8 минут в день, 1000 слов за 7 месяцев", 10: "≈15 минут в день, 1000 слов за 3–4 месяца", 15: "≈20 минут в день, 1000 слов за 2–3 месяца", 20: "≈30 минут в день, 1000 слов за 2 месяца" };
 
 export function methodHtml(db, { voice, canSpeak }) {
+  const start = db.start || "A1";
   return `<header class="large-title"><h1>Как учить</h1><p>Метод и настройки</p></header>
+    <div class="card">
+      <span class="eyebrow">Начать с уровня</span>
+      <div class="seg en-lv-seg">${LEVELS.map((lv) => `<button type="button" data-level="${lv}" class="${start === lv ? "on" : ""}">${lv}</button>`).join("")}</div>
+      <p class="muted">${start}: ${LEVEL_NAMES[start]}. Слова ниже этого уровня считаются знакомыми.${db.test ? ` Тест ${db.test.date}: уровень ${db.test.level}.` : ""}</p>
+      <button type="button" class="btn big" data-test>${db.test ? "Пройти тест заново" : "Пройти тест уровня · 3 мин"}</button>
+    </div>
     <div class="card">
       <span class="eyebrow">Новых слов в день</span>
       <div class="seg en-pace">${PACE_OPTIONS.map((n) => `<button type="button" data-pace="${n}" class="${db.pace === n ? "on" : ""}">${n}</button>`).join("")}</div>
@@ -29,6 +37,7 @@ export function methodHtml(db, { voice, canSpeak }) {
       <summary>Почему это работает</summary>
       <ul class="cues">
         <li><b>Самые частые слова.</b> 100 слов дают около половины любой речи, 1000 слов дают около 84% (Nation, 2006). Поэтому порядок по частоте, а не по учебнику.</li>
+        <li><b>Уровни A1–C1.</b> Тест проверяет по 6 слов каждого уровня. Уровень засчитан при 5 из 6 верных, курс начинается с первого незасчитанного. Дальше слова B1, B2 и C1: то, что нужно на работе, во встречах и переговорах.</li>
         <li><b>Вспоминать, а не перечитывать.</b> Попытка вспомнить закрепляет память в разы сильнее, чем повторное чтение (Karpicke и Roediger, 2008).</li>
         <li><b>Повторение с паузами.</b> Слово возвращается через 1, 3, 7, 16, 35 дней, ровно когда начинает забываться. Ошибка не сбрасывает всё, а отодвигает на два шага.</li>
         <li><b>Вслух.</b> Сказанное вслух запоминается лучше прочитанного про себя (MacLeod, 2010).</li>
@@ -45,7 +54,7 @@ export function methodHtml(db, { voice, canSpeak }) {
 
     <details class="help">
       <summary>Откуда слова</summary>
-      <p>Порядок составлен по частоте слов в живой разговорной речи, по образцу списков NGSL-Spoken и NGSL (Browne, Culligan, Phillips), плюс слова для поездок и работы: деньги, такси, встреча. Переводы, подсказки и фразы написаны для этого приложения.</p>
+      <p>Первая 1000: по частоте слов в живой разговорной речи, по образцу списков NGSL-Spoken и NGSL (Browne, Culligan, Phillips), плюс слова для поездок и работы. Уровни B1–C1 подобраны по шкале CEFR (как в English Vocabulary Profile) с упором на работу и переговоры. Уровни слов приблизительные. Переводы, подсказки и фразы написаны для этого приложения.</p>
     </details>
 
     <button type="button" class="btn link danger" data-reset>Сбросить прогресс английского</button>`;

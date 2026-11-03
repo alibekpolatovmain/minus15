@@ -2,11 +2,13 @@
 import { esc, openSheet, closeSheet, toast, plural } from "../ui.js";
 import { isoDate, addDays } from "../plan.js";
 import { load, save, reset } from "./store.js";
-import { WORDS, WORD, ORDER, PACKS } from "./words.js";
-import { planDay, coverage, isLearned, isCounted, streakAfter, streakNow, recId, KNOWN_BOX } from "./srs.js";
+import { WORDS, WORD, ORDER, PACKS, BASE_SIZE } from "./words.js";
+import { planDay, coverage, isLearned, isCounted, streakAfter, streakNow, recId, alreadyKnown, KNOWN_BOX } from "./srs.js";
 import { runSession, answerHtml } from "./session.js";
 import { initVoice, hasEnglishVoice, speakEn, canSpeak } from "./audio.js";
 import { methodHtml } from "./method.js";
+import { LEVELS, LEVEL_NAMES, courseOrder, isBelow, startFrom, knownEstimate } from "./levels.js";
+import { runPlacement, placementResultHtml } from "./placement.js";
 
 // Seconds per card, for the «≈ N мин» estimate: a new word is met and then checked.
 const SEC = { review: 8, prod: 10, fresh: 25 };
@@ -14,7 +16,7 @@ const SEC = { review: 8, prod: 10, fresh: 25 };
 const DAY_MIN_CARDS = 5;
 const EXTRA_NEW = 5;
 const WEEK = 7;
-const MILESTONES = [50, 100, 200, 300, 500, 750, 1000];
+const MILESTONES = [50, 100, 200, 300, 500, 750, 1000, 1500, 2000];
 const FILTERS = [["all", "Все"], ["learning", "Учу"], ["known", "Знаю"], ["new", "Новые"]];
 const SHORT_DAYS = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
 
@@ -30,13 +32,16 @@ function commit(next, rerender = true) {
   if (rerender) renderEng();
 }
 
-const plan = () => ({ ...planDay(ORDER, db.cards, today(), db.pace), today: today() });
+const order = () => courseOrder(WORDS, db.start);
+const plan = () => ({ ...planDay(order(), db.cards, today(), db.pace), today: today() });
 const doneToday = () => db.streak?.last === today();
 const learnedCount = () => ORDER.filter((w) => isLearned(db.cards[recId(w)])).length;
-const coveragePct = (cards = db.cards) => Math.round(100 * coverage(WORDS.filter((w) => isCounted(cards[recId(w.id)])).map((w) => w.rank), WORDS.length));
+/** Below the start level a word without a card is taken as known (the test or the learner said so). */
+const assumed = (w) => !db.cards[recId(w.id)] && isBelow(w.lv, db.start);
+const coveragePct = () => Math.round(100 * coverage(WORDS.filter((w) => w.base && (isCounted(db.cards[recId(w.id)]) || assumed(w))).map((w) => w.rank), BASE_SIZE));
 const statusOf = (wid) => {
   const c = db.cards[recId(wid)];
-  if (!c) return "new";
+  if (!c) return assumed(WORD[wid]) ? "known" : "new";
   return c.box >= KNOWN_BOX ? "known" : "learning";
 };
 const sizeOf = (p) => p.reviews.length + p.prod.length + p.fresh.length;
@@ -48,7 +53,7 @@ function finishHtml(stats, { daily }) {
   const after = coveragePct();
   const days = streakNow(db.streak, today());
   const phrases = stats.fresh.filter((wid) => isLearned(db.cards[recId(wid)])).slice(0, 3).map((wid) => WORD[wid]);
-  const tomorrow = planDay(ORDER, db.cards, addDays(today(), 1), db.pace);
+  const tomorrow = planDay(order(), db.cards, addDays(today(), 1), db.pace);
   return `<h2 class="dr-title center">Готово!</h2>
     <p class="dr-score"><b>${stats.fresh.length ? `+${stats.fresh.length}` : stats.right}</b>${stats.fresh.length ? plural(stats.fresh.length, "новое слово", "новых слова", "новых слов") : `из ${stats.graded} верно`}</p>
     <div class="dr-stats">${daily && days ? `<p><b>${days}</b><span>${plural(days, "день", "дня", "дней")} подряд</span></p>` : `<p><b>${learnedCount()}</b><span>слов изучено</span></p>`}
@@ -95,14 +100,56 @@ function startSession(p, title, { daily = false } = {}) {
 }
 
 function startExtra() {
-  const fresh = ORDER.filter((w) => !db.cards[recId(w)]).slice(0, EXTRA_NEW);
+  const fresh = order().filter((w) => !db.cards[recId(w)]).slice(0, EXTRA_NEW);
   if (!fresh.length) { toast("Все слова курса уже начаты."); return; }
   startSession({ reviews: [], prod: [], fresh, today: today() }, "Ещё слова");
 }
 
+/* ---------- placement test ---------- */
+function applyStart(level) {
+  commit({ ...db, start: level });
+  toast(`Курс начинается с уровня ${level}.`);
+}
+
+function startTest() {
+  runPlacement({
+    audio: db.audio,
+    onDone: ({ scores, right }) => {
+      const start = startFrom(scores);
+      const known = knownEstimate(scores, WORDS);
+      // Words answered right at or above the start level skip their first showing and come back in a week.
+      const cards = { ...db.cards };
+      right.filter((wid) => !isBelow(WORD[wid].lv, start) && !cards[recId(wid)]).forEach((wid) => { cards[recId(wid)] = alreadyKnown(today()); });
+      commit({ ...db, cards, start, test: { date: today(), level: start, known } }, false);
+      return placementResultHtml({ scores, start, known, total: WORDS.length });
+    },
+    onPick: applyStart,
+    onClose: renderEng,
+  });
+}
+
 /* ---------- «Сегодня» ---------- */
+function testCard() {
+  if (db.test || db.start || learnedCount() >= 30) return "";
+  return `<article class="card soft"><span class="eyebrow">С какого уровня начать</span>
+    <p>Уже знаете английский? Тест на 3 минуты покажет уровень: A1–C1. Знакомые слова в тренировку не попадут.</p>
+    <button type="button" class="btn primary big" data-test>Пройти тест уровня</button></article>`;
+}
+
+function levelRows() {
+  const levels = LEVELS.filter((lv) => !isBelow(lv, db.start) && WORDS.some((w) => w.lv === lv));
+  return `<div class="progress en-levels"><div class="progress-num">Уровень <b>${db.start || "A1"}</b> <span class="muted">${LEVEL_NAMES[db.start || "A1"]}</span></div>
+    ${levels.map((lv) => {
+      const all = WORDS.filter((w) => w.lv === lv);
+      const done = all.filter((w) => isLearned(db.cards[recId(w.id)])).length;
+      return `<div class="en-lv-row"><b>${lv}</b><div class="bar"><i style="width:${Math.round((done / all.length) * 100)}%"></i></div><span>${done}/${all.length}</span></div>`;
+    }).join("")}</div>`;
+}
+
 function mainCard() {
   const p = plan();
+  // One primary action per screen: while the level test is offered, it is the primary one.
+  const primary = testCard() ? "" : "primary ";
   const n = sizeOf(p);
   if (doneToday() || !n) {
     return `<article class="card main ok"><span class="eyebrow">Сегодня</span><h2>Сегодня готово ✓</h2>
@@ -117,7 +164,7 @@ function mainCard() {
     <h2>${n} ${plural(n, "слово", "слова", "слов")} · ≈${minutesOf(p)} мин</h2>
     <p class="meta">${parts}.${p.backlog > p.reviews.length ? " Сначала повторим, потом новые." : ""}</p>
     ${comeback ? `<p class="meta">С возвращением! Начнём с того, что уже знаете.</p>` : ""}
-    <button type="button" class="btn primary huge" data-daily>Начать</button></article>`;
+    <button type="button" class="btn ${primary}huge" data-daily>${primary ? "Начать" : "Начать без теста"}</button></article>`;
 }
 
 function weekStrip() {
@@ -139,16 +186,19 @@ function canSayList() {
 function renderToday() {
   const learned = learnedCount();
   const days = streakNow(db.streak, today());
-  const goal = MILESTONES.find((m) => m > learned) || WORDS.length;
-  const pct = Math.round((learned / WORDS.length) * 100);
-  const nextPack = PACKS[WORD[ORDER.find((w) => !db.cards[recId(w)])]?.pack];
+  const courseSize = order().length;
+  const goal = MILESTONES.find((m) => m > learned) || courseSize;
+  const pct = Math.round((learned / Math.max(1, courseSize)) * 100);
+  const nextPack = PACKS[WORD[order().find((w) => !db.cards[recId(w)])]?.pack];
   return `<header class="large-title"><h1>Английский</h1><p>${days ? `Серия ${days} ${plural(days, "день", "дня", "дней")}` : "10–15 минут в день"}</p></header>
+    ${testCard()}
     ${mainCard()}
     <div class="stats"><div class="stat"><b>${learned}</b><span>${plural(learned, "слово изучено", "слова изучено", "слов изучено")}</span></div>
       <button type="button" class="stat en-cov-btn" data-coverage><b>≈${coveragePct()}%</b><span>слов в обычной речи вы узнаёте ⓘ</span></button></div>
-    <div class="progress"><div class="progress-num"><b>${learned}</b> из ${WORDS.length} слов</div>
+    <div class="progress"><div class="progress-num"><b>${learned}</b> из ${courseSize} слов курса</div>
       <div class="bar"><i style="width:${pct}%"></i></div>
-      <p class="progress-line">Следующая цель: ${goal} ${plural(goal, "слово", "слова", "слов")}.${nextPack ? ` Сейчас тема «${esc(nextPack.title)}».` : ""}</p></div>
+      <p class="progress-line">Следующая цель: ${goal} ${plural(goal, "слово", "слова", "слов")}.${nextPack ? ` Сейчас тема «${esc(nextPack.title)}»${nextPack.lv ? `, ${nextPack.lv}` : ""}.` : ""}</p></div>
+    ${levelRows()}
     ${weekStrip()}
     ${canSayList()}`;
 }
@@ -169,7 +219,7 @@ function wordRows() {
   const html = PACKS.map((p) => {
     const list = WORDS.filter((w) => w.pack === p.id && match(w));
     if (!list.length) return "";
-    return `<h3 class="en-pack">${p.id + 1}. ${esc(p.title)}</h3>${list.map((w) => `<button type="button" class="list-item en-row ${statusOf(w.id)}" data-word="${w.id}">
+    return `<h3 class="en-pack">${p.lv || list[0].lv} · ${esc(p.title)}</h3>${list.map((w) => `<button type="button" class="list-item en-row ${statusOf(w.id)}" data-word="${w.id}">
       <span class="en-row-emoji" aria-hidden="true">${esc(w.e || "🔤")}</span><span class="en-row-text"><b lang="en">${esc(w.en)}</b><small>${esc(w.ru)}</small></span>
       <i class="en-dots" aria-label="${{ new: "новое", learning: "учу", known: "знаю" }[statusOf(w.id)]}">${DOTS[statusOf(w.id)]}</i></button>`).join("")}`;
   }).join("");
@@ -219,6 +269,9 @@ function onClick(e) {
   if (t.closest("[data-daily]")) { startSession(plan(), "Слова", { daily: true }); return; }
   if (t.closest("[data-extra]")) { startExtra(); return; }
   if (t.closest("[data-coverage]")) { coverageSheet(); return; }
+  if (t.closest("[data-test]")) { startTest(); return; }
+  const lv = t.closest("[data-level]");
+  if (lv) { applyStart(lv.dataset.level); return; }
   const phrase = t.closest("[data-say-text]");
   if (phrase) { speakEn(phrase.dataset.sayText); return; }
   const row = t.closest("[data-word]");
@@ -264,6 +317,7 @@ export function engSummary() {
   const main = doneToday() || !n
     ? `Сегодня готово ✓ · ${learned} ${plural(learned, "слово", "слова", "слов")}`
     : `Сегодня: ${n} ${plural(n, "слово", "слова", "слов")}, ≈${minutesOf(p)} мин`;
-  return { main, extra: learned ? `Узнаёте ≈${coveragePct()}% слов в речи` : "1000 главных слов для разговора", done: doneToday() };
+  const extra = db.start || learned ? `Уровень ${db.start || "A1"} · узнаёте ≈${coveragePct()}% слов в речи` : "Тест уровня и слова A1–C1";
+  return { main, extra, done: doneToday() };
 }
 

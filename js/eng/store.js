@@ -1,5 +1,6 @@
 // On-device storage for «Английский»: card progress, own associations, streak and settings. Own key, like «Переговоры».
 import { INTERVALS, PACE_OPTIONS, DEFAULT_PACE } from "./srs.js";
+import { LEVELS } from "./levels.js";
 
 const KEY = "minus15:eng:v1";
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -11,7 +12,7 @@ const MAX_LOG = 400;
 const date = (v) => (typeof v === "string" && DATE_RE.test(v) ? v : null);
 const count = (v) => Math.max(0, Math.round(Number(v) || 0));
 
-export const DEFAULTS = Object.freeze({ version: 1, cards: {}, notes: {}, streak: null, log: [], pace: DEFAULT_PACE, audio: true });
+export const DEFAULTS = Object.freeze({ version: 1, cards: {}, notes: {}, streak: null, log: [], pace: DEFAULT_PACE, audio: true, start: null, test: null });
 
 export function cleanCard(c) {
   const box = Math.round(Number(c?.box));
@@ -47,6 +48,8 @@ export function validate(raw) {
       .slice(-MAX_LOG),
     pace: PACE_OPTIONS.includes(src.pace) ? src.pace : DEFAULT_PACE,
     audio: src.audio !== false,
+    start: LEVELS.includes(src.start) ? src.start : null,
+    test: date(src.test?.date) && LEVELS.includes(src.test?.level) ? { date: src.test.date, level: src.test.level, known: count(src.test.known) } : null,
   };
 }
 
