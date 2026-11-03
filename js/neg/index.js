@@ -1,17 +1,26 @@
-// «Переговоры»: daily drill, deal preparation and the playbook. Owns its own database object.
-import { esc, openSheet, closeSheet, toast } from "../ui.js";
+// «Переговоры»: daily drill, pitch, meeting preparation and the playbook. Owns its own database object.
+import { esc, openSheet, closeSheet, toast, plural } from "../ui.js";
 import { isoDate, addDays } from "../plan.js";
 import { load, save, cleanDeal } from "./store.js";
-import { SCENARIOS, TECHNIQUES, TOPICS } from "./content.js";
-import { review, pickDaily, curriculum, isMastered, streakAfter } from "./srs.js";
+import { SCENARIOS, TOPICS } from "./content.js";
+import { review, pickDaily, isMastered, streakAfter } from "./srs.js";
 import { runDrill } from "./drill.js";
 import { STEPS, blankDeal, wizardHtml, dealWarnings, ladderHtml, preciseFor, dealListHtml, whenLabel } from "./prep.js";
 import { cheatSheetHtml, rehearsalPrompt, rehearsalSheetHtml, debriefSheetHtml } from "./cheatsheet.js";
 import { playbookHtml } from "./playbook.js";
 import { fmtMoney } from "./numbers.js";
+import { todayHtml } from "./today.js";
+import { pitchHtml, onPitchClick } from "./pitch.js";
+import { openRescue } from "./rescue.js";
+import { PITCH_VERSIONS, pitchText } from "./kit.js";
 
-const ORDER = curriculum(SCENARIOS);
-const SECONDS_PER_CARD = 30;
+/**
+ * Daily order: situations only (techniques are explained inside the feedback), rescue situations
+ * interleaved from the start so «stuck» and «tell about yourself» come in the first days.
+ */
+const RESCUE_IDS = SCENARIOS.filter((s) => s.topic === "rescue");
+const MAIN_IDS = SCENARIOS.filter((s) => s.topic !== "rescue");
+const ORDER = MAIN_IDS.flatMap((s, i) => [s, RESCUE_IDS[i]].filter(Boolean)).map((s) => `s:${s.id}`);
 const EXTRA_COUNT = 5;
 const SOON_DAYS = 14;
 const CLAUDE_URL = "https://claude.ai/new";
@@ -28,15 +37,9 @@ function commit(next, rerender = true) {
   if (rerender) renderNeg();
 }
 
-const plural = (n, one, few, many) => {
-  const a = Math.abs(n) % 100;
-  const b = a % 10;
-  if (a > 10 && a < 20) return many;
-  return b === 1 ? one : b >= 2 && b <= 4 ? few : many;
-};
 const dailyIds = () => pickDaily(ORDER, db.cards, today());
 const doneToday = () => db.streak?.last === today();
-const mastered = (prefix) => ORDER.filter((id) => id.startsWith(prefix) && isMastered(db.cards[id])).length;
+const mastered = () => ORDER.filter((id) => isMastered(db.cards[id])).length;
 const nextDeal = () => db.deals
   .filter((d) => d.date && d.date >= today() && d.date <= addDays(today(), SOON_DAYS) && !d.outcome && !Number.isFinite(d.result))
   .sort((a, b) => (a.date < b.date ? -1 : 1))[0];
@@ -65,7 +68,7 @@ function startDrill(ids, title, { topic = null, daily = false } = {}) {
       return `<h2 class="dr-title center">Готово!</h2>
         <p class="dr-score"><b>${right}</b> из ${total} верно</p>
         <div class="dr-stats">${days ? `<p><b>${days}</b><span>${plural(days, "день", "дня", "дней")} подряд</span></p>` : `<p><b>${Math.round((right / total) * 100)}%</b><span>верных ответов</span></p>`}
-          <p><b>${mastered("s:")}</b><span>из ${SCENARIOS.length} ситуаций освоено</span></p></div>
+          <p><b>${mastered()}</b><span>из ${SCENARIOS.length} ситуаций освоено</span></p></div>
         <p class="muted center">Завтра ${tomorrow} ${plural(tomorrow, "карточка", "карточки", "карточек")}. Повторение через 1, 3, 7 и 14 дней закрепляет надолго.</p>`;
     },
     onMore: () => startDrill(extraIds(topic), "Ещё ситуации", { topic }),
@@ -74,54 +77,31 @@ function startDrill(ids, title, { topic = null, daily = false } = {}) {
 }
 
 /* ---------- «Сегодня» ---------- */
-function mainCard() {
-  const ids = dailyIds();
-  if (doneToday() || !ids.length) {
-    return `<article class="card main ok"><h2>Разминка сделана ✓</h2>
-      <p class="meta">${doneToday() ? "Новые карточки будут завтра." : "Всё повторено, новые карточки будут завтра."}</p>
-      <button type="button" class="btn primary huge" data-extra>Ещё 5 ситуаций</button></article>`;
-  }
-  const fresh = ids.filter((id) => !db.cards[id]).length;
-  const minutes = Math.max(1, Math.round((ids.length * SECONDS_PER_CARD) / 60));
-  const parts = [ids.length - fresh ? `${ids.length - fresh} на повторение` : "", fresh ? `${fresh} ${plural(fresh, "новая", "новые", "новых")}` : ""].filter(Boolean).join(", ");
-  return `<article class="card main">
-    <span class="eyebrow">Разминка дня</span>
-    <h2>${ids.length} ${plural(ids.length, "карточка", "карточки", "карточек")} · ≈${minutes} мин</h2>
-    <p class="meta">${parts}. Ситуации из переговоров: выбираете ответ, потом говорите его сами.</p>
-    <button type="button" class="btn primary huge" data-daily>Начать</button>
-  </article>`;
-}
-
-function dealCard() {
-  const d = nextDeal();
-  if (!d) return "";
-  return `<article class="card soft"><span class="eyebrow">Встреча ${esc(whenLabel(d.date, today()))}</span>
-    <b class="deal-title">${esc(d.title || "Без названия")}</b>
-    ${Number.isFinite(d.target) ? `<p class="meta">Цель ${esc(fmtMoney(d.target, d.unit))}${Number.isFinite(d.walk) ? ` · ухожу ниже ${esc(fmtMoney(d.walk, d.unit))}` : ""}</p>` : ""}
-    <button type="button" class="btn primary" data-open-deal="${esc(d.id)}">Открыть шпаргалку</button></article>`;
-}
-
-function topicRows() {
-  return TOPICS.map((t) => {
-    const all = SCENARIOS.filter((s) => s.topic === t.id);
-    const ok = all.filter((s) => isMastered(db.cards[`s:${s.id}`])).length;
-    return `<button type="button" class="btn alt" data-topic="${t.id}"><b>${esc(t.title)}</b><small>освоено ${ok} из ${all.length}</small></button>`;
-  }).join("");
+function pitchStatus() {
+  const ready = PITCH_VERSIONS.filter((v) => v.blocks.every((k) => (db.me[k] || "").trim()));
+  if (!ready.length) return "30 с · 2 мин · 5 мин";
+  const ran = ready.filter((v) => db.me.runs[v.id]?.date === today()).length;
+  return ran ? "отрепетирован сегодня ✓" : "отрепетировать";
 }
 
 function renderToday() {
-  const s = mastered("s:");
-  const t = mastered("t:");
-  const streak = db.streak && (doneToday() || db.streak.last === addDays(today(), -1)) ? db.streak.days : 0;
-  const pct = Math.round((s / SCENARIOS.length) * 100);
-  return `<header class="large-title"><h1>Переговоры</h1><p>${streak ? `Серия ${streak} ${plural(streak, "день", "дня", "дней")}` : "Пять минут в день"}</p></header>
-    ${mainCard()}
-    ${dealCard() || `<div class="alts"><button type="button" class="btn alt" data-new-deal><b>Подготовиться к встрече</b><small>7 шагов и шпаргалка на один экран</small></button></div>`}
-    <div class="progress"><div class="progress-num"><b>${s}</b> из ${SCENARIOS.length} ситуаций</div>
-      <div class="bar"><i style="width:${pct}%"></i></div>
-      <p class="progress-line">Приёмов освоено: ${t} из ${TECHNIQUES.length}. Освоено — значит верно три раза с перерывами.</p></div>
-    <h3 class="section-title">Потренировать тему</h3>
-    <div class="alts">${topicRows()}</div>`;
+  const ids = dailyIds();
+  const deal = nextDeal();
+  return todayHtml({
+    ids,
+    fresh: ids.filter((id) => !db.cards[id]).length,
+    done: doneToday(),
+    streak: db.streak && (doneToday() || db.streak.last === addDays(today(), -1)) ? db.streak.days : 0,
+    deal,
+    when: deal ? whenLabel(deal.date, today()) : "",
+    mastered: mastered(),
+    total: ORDER.length,
+    topics: TOPICS.map((t) => {
+      const all = SCENARIOS.filter((x) => x.topic === t.id);
+      return { ...t, all: all.length, ok: all.filter((x) => isMastered(db.cards[`s:${x.id}`])).length };
+    }),
+    pitch: pitchStatus(),
+  });
 }
 
 /* ---------- «Подготовка» ---------- */
@@ -137,7 +117,7 @@ function renderPrep() {
   const deal = prep.deal && dealById(prep.deal);
   if (!deal) return dealListHtml(db.deals, today());
   if (prep.step !== null) return wizardHtml(deal, prep.step);
-  return cheatSheetHtml(deal, today());
+  return cheatSheetHtml(deal, today(), pitchText(db.me, PITCH_VERSIONS[0]));
 }
 
 function openPrep(dealId, step = null) {
@@ -163,9 +143,13 @@ export function renderNeg() {
   const main = $("neg-main");
   if (tab === "today") main.innerHTML = renderToday();
   if (tab === "prep") main.innerHTML = renderPrep();
+  if (tab === "pitch") main.innerHTML = pitchHtml(db.me, today());
   if (tab === "learn") main.innerHTML = playbookHtml(db.cards);
-  // Inside a deal its own «‹ Все подготовки» leads back, so the section link would be a second back button.
-  document.querySelector("#mod-neg > .home-link").hidden = tab === "prep" && Boolean(prep.deal && dealById(prep.deal));
+  const inDeal = tab === "prep" && Boolean(prep.deal && dealById(prep.deal));
+  // Inside a deal its own «‹ Встречи» leads back, so the section link would be a second back button.
+  document.querySelector("#mod-neg > .home-link").hidden = inDeal;
+  // The wizard has its own Back/Next bar; the tab bar under it would eat a fifth of the screen.
+  document.body.classList.toggle("wizard", inDeal && prep.step !== null);
 }
 
 function showNegTab(name) {
@@ -191,8 +175,7 @@ function onWizardBlur(e) {
   if (deal && Number.isFinite(deal[el.dataset.k])) el.value = fmtMoney(deal[el.dataset.k]);
 }
 
-function rehearse(deal) {
-  const prompt = rehearsalPrompt(deal);
+function openPrompt(prompt) {
   const body = openSheet(rehearsalSheetHtml(prompt));
   body.querySelector("[data-ai-go]").addEventListener("click", () => {
     const copied = navigator.clipboard?.writeText(prompt);
@@ -257,7 +240,7 @@ function onPrepClick(e) {
     return;
   }
   if (t.closest("[data-edit]")) { prep = { ...prep, step: 0 }; renderNeg(); window.scrollTo(0, 0); return; }
-  if (t.closest("[data-ai]")) { rehearse(deal); return; }
+  if (t.closest("[data-ai]")) { openPrompt(rehearsalPrompt(deal)); return; }
   if (t.closest("[data-debrief]")) { debrief(deal); return; }
   if (t.closest("[data-delete]") && confirm(`Удалить «${deal.title || "Без названия"}»?`)) {
     prep = { deal: null, step: null };
@@ -265,8 +248,12 @@ function onPrepClick(e) {
   }
 }
 
+const saveMe = (me) => commit({ ...db, me });
+
 function onClick(e) {
   const t = e.target;
+  if (t.closest("[data-sos-open]")) { openRescue(); return; }
+  if (tab === "pitch" && onPitchClick(e, { me: db.me, saveMe, openPrompt, todayIso: today() })) return;
   if (t.closest("[data-daily]")) { startDrill(dailyIds(), "Разминка", { daily: true }); return; }
   if (t.closest("[data-extra]")) { startDrill(extraIds(), "Ещё ситуации"); return; }
   const topic = t.closest("[data-topic]") || t.closest("[data-practice]");
@@ -295,12 +282,13 @@ export function initNeg() {
   }));
   // Reload from storage when returning to the app: a drill may have finished in another tab.
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") db = load(); });
+  window.addEventListener("hashchange", () => { if (location.hash !== "#neg") document.body.classList.remove("wizard"); });
 }
 
 /** One line for the home screen tile. */
 export function negSummary() {
   const deal = nextDeal();
   const n = dailyIds().length;
-  const drill = doneToday() || !n ? `Разминка сделана ✓${db.streak ? ` · серия ${db.streak.days}` : ""}` : `Разминка: ${n} ${plural(n, "карточка", "карточки", "карточек")}`;
+  const drill = doneToday() || !n ? `Разминка сделана ✓${db.streak ? ` · серия ${db.streak.days}` : ""}` : `Разминка: ${n} ${plural(n, "ситуация", "ситуации", "ситуаций")}`;
   return { main: drill, extra: deal ? `Встреча ${whenLabel(deal.date, today())}: ${deal.title || "без названия"}` : "", done: doneToday() };
 }

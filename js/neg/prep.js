@@ -5,45 +5,36 @@ import { preciseNumber, concessionLadder, fmtMoney } from "./numbers.js";
 const AUDIT_CHIPS = ["Вы думаете, что мы дорогие", "Боитесь, что внедрение затянется", "Кажется, что нам нужен только ваш логотип", "Вас уже подводили подрядчики"];
 const QUESTION_CHIPS = ["Что для вас будет успехом?", "Как нам быть, если бюджет не сходится?", "Что здесь самое сложное для вас?", "Кто ещё участвует в решении?", "Как мне это сделать?", "Что случится, если ничего не менять?"];
 
-/** Wizard steps. Fields: k = key, t = type (text, area, num, date, side), l = label, p = example, chips = quick inserts. */
+/** Wizard steps. Every field is optional: the cheat sheet works from a title and two numbers. Fields: k, t (text, area, num, date, side), l, p, chips. */
 export const STEPS = [
   { title: "Встреча", hint: "О чём и с кем. Выясните, кто на самом деле принимает решение.", fields: [
-    { k: "title", t: "text", l: "Что обсуждаем", p: "Годовой договор на ИИ-ассистента для продаж" },
-    { k: "who", t: "area", l: "С кем и кто решает", p: "Закупщик Айгерим, решает финдиректор Ербол" },
+    { k: "title", t: "text", l: "Что обсуждаем", p: "Годовой договор с горнорудным холдингом" },
+    { k: "who", t: "text", l: "С кем и кто решает", p: "Закупщик Айгерим, решает финдиректор" },
     { k: "date", t: "date", l: "Когда встреча" },
     { k: "side", t: "side", l: "Моя роль" },
-    { k: "unit", t: "text", l: "В чём считаем", p: "₸", short: true },
   ] },
-  { title: "Ваши границы", hint: "Пишите до встречи: под давлением границы плывут. Цель — амбициозная, но обоснованная.", fields: [
+  { title: "Цифры", hint: "Пишите до встречи: под давлением границы плывут. Знаете рынок — называйте цену первым.", fields: [
     { k: "target", t: "num", l: "Цель: на что рассчитываю", p: "15 000 000" },
-    { k: "walk", t: "num", l: "Точка ухода: хуже этого — ухожу", p: "11 000 000" },
-    { k: "batna", t: "area", l: "План Б: что сделаю, если не договоримся", p: "Подпишем пилот с другим холдингом, он ждёт ответа до декабря" },
-    { k: "batnaUp", t: "area", l: "Как усилить план Б до встречи", p: "Назначить вторую встречу с другим холдингом на эту неделю" },
-  ] },
-  { title: "Их сторона", hint: "Представьте себя на их месте. Позиция — что требуют, интерес — зачем.", fields: [
-    { k: "theirInterests", t: "area", l: "Что им на самом деле нужно", p: "Показать совету экономию до апреля; не перегрузить IT; не рисковать репутацией" },
-    { k: "myInterests", t: "area", l: "Что на самом деле нужно мне", p: "Громкий кейс в отрасли; предоплата для кассового разрыва" },
-    { k: "theirBatna", t: "area", l: "Что они сделают без нас", p: "Возьмут конкурента подешевле или отложат на год" },
-    { k: "theirs", t: "num", l: "Их предел (догадка)", p: "16 000 000" },
-  ] },
-  { title: "Первое предложение", hint: "Знаете рынок — называйте первым. Точное число с причиной тянет весь торг к себе.", fields: [
-    { k: "anchor", t: "num", l: "Моё первое предложение (якорь)", p: "18 400 000", precise: true },
-    { k: "anchorWhy", t: "area", l: "Чем обосную", p: "Три отдела × 12 месяцев, поддержка с ответом за час; экономия клиента ≈60 млн в год" },
+    { k: "walk", t: "num", l: "Точка ухода: хуже — ухожу", p: "11 000 000" },
+    { k: "anchor", t: "num", l: "Первое предложение", p: "18 400 000", precise: true },
+    { k: "anchorWhy", t: "area", l: "Чем обосную цену", p: "Три отдела × 12 месяцев; экономия клиента ≈60 млн в год" },
+    { k: "theirs", t: "num", l: "Их предел (догадка, можно пропустить)", p: "16 500 000" },
   ], ladder: true },
-  { title: "Обмен", hint: "Ни одной уступки без встречной. Ищите то, что вам дёшево, а им дорого.", fields: [
-    { k: "cheapForMe", t: "area", l: "Что мне дёшево, а им ценно", p: "Обучение команды; отчёт для совета; приоритетная поддержка" },
-    { k: "askBack", t: "area", l: "Что попрошу взамен", p: "Предоплата 50 %; договор на 2 года; публичный кейс" },
-    { k: "meso1", t: "text", l: "Вариант 1", p: "18,4 млн, оплата через 60 дней" },
-    { k: "meso2", t: "text", l: "Вариант 2 (равноценный для меня)", p: "16,9 млн и предоплата 50 %" },
-    { k: "meso3", t: "text", l: "Вариант 3 (равноценный для меня)", p: "15,2 млн за два отдела без интеграции" },
+  { title: "Их сторона", hint: "Позиция — что требуют. Интерес — зачем. Работайте с интересами.", fields: [
+    { k: "theirInterests", t: "area", l: "Что им на самом деле нужно", p: "Показать совету экономию до апреля; не перегрузить IT" },
+    { k: "batna", t: "area", l: "Мой план Б, если не договоримся", p: "Пилот с другим холдингом, ждёт ответа до декабря" },
   ] },
-  { title: "Слова", hint: "Готовые фразы снимают волнение. Начните с аудита обвинений, дальше — вопросы.", fields: [
-    { k: "audit", t: "area", l: "Аудит обвинений: что плохого они о нас думают", p: "Скорее всего, вы думаете, что мы дорогие и что внедрение затянется", chips: AUDIT_CHIPS },
+  { title: "Обмен", hint: "Ни одной уступки без встречной. Три варианта на выбор вместо одного «да или нет».", fields: [
+    { k: "cheapForMe", t: "text", l: "Могу дать (мне дёшево, им ценно)", p: "Обучение команды, отчёт для совета" },
+    { k: "askBack", t: "text", l: "Попрошу взамен", p: "Предоплата 50 % или договор на 2 года" },
+    { k: "meso1", t: "text", l: "Вариант 1", p: "18,5 млн, оплата через 60 дней" },
+    { k: "meso2", t: "text", l: "Вариант 2", p: "16,9 млн и предоплата 50 %" },
+    { k: "meso3", t: "text", l: "Вариант 3", p: "15,2 млн за два отдела" },
+  ] },
+  { title: "Слова", hint: "Готовые фразы снимают волнение. Нажмите на подсказку, чтобы добавить её.", fields: [
+    { k: "audit", t: "area", l: "Начну с: что плохого они о нас думают", p: "Скорее всего, вы думаете, что мы дорогие", chips: AUDIT_CHIPS },
     { k: "questions", t: "area", l: "Мои вопросы «Как?» и «Что?»", p: "Что для вас будет успехом через полгода?", chips: QUESTION_CHIPS },
-    { k: "walkLine", t: "area", l: "Фраза, если предложат ниже точки ухода", p: "Похоже, сейчас мы не сойдёмся. Будет ли плохой идеей вернуться к разговору в январе?" },
-  ] },
-  { title: "Финал", hint: "Встреча удалась, если есть следующий шаг: кто, что и когда.", fields: [
-    { k: "nextStep", t: "area", l: "Чего хочу добиться в конце встречи", p: "Согласованные условия и встреча с финдиректором до пятницы" },
+    { k: "nextStep", t: "text", l: "Чего добиться к концу встречи", p: "Встреча с финдиректором до пятницы" },
   ] },
 ];
 
@@ -81,12 +72,14 @@ export function dealWarnings(d) {
   return out;
 }
 
+export const LADDER_LABELS = ["Первое", "Уступка 1", "Уступка 2", "Финал"];
+
 export function ladderHtml(d) {
   const steps = concessionLadder({ anchor: d.anchor, target: d.target, side: d.side });
   if (!steps.length) return `<p class="muted">Заполните цель${d.side === "sell" ? " и якорь" : ""}, и появится лестница уступок.</p>`;
   const how = d.side === "buy" && !(d.anchor > 0) ? "по Аккерману: 65 → 85 → 95 → 100 % цели" : "каждый шаг меньше прошлого";
   return `<div class="ladder"><p class="f-label">Лестница уступок, ${how}</p>
-    <ol>${steps.map((v) => `<li>${esc(fmtMoney(v, d.unit))}</li>`).join("")}</ol></div>`;
+    <ul>${steps.map((v, i) => `<li><span>${LADDER_LABELS[i]}</span><b>${esc(fmtMoney(v, d.unit))}</b></li>`).join("")}</ul></div>`;
 }
 
 export function wizardHtml(deal, step) {
@@ -94,10 +87,10 @@ export function wizardHtml(deal, step) {
   const dots = STEPS.map((_, n) => `<i class="${n === step ? "on" : n < step ? "done" : ""}"></i>`).join("");
   const warns = dealWarnings(deal).map((w) => `<p class="warn-line">${esc(w)}</p>`).join("");
   const last = step === STEPS.length - 1;
-  return `<header class="wz-head"><button type="button" class="btn link back" data-wz-exit>‹ Все подготовки</button>
-      <div class="dots" aria-label="Шаг ${step + 1} из ${STEPS.length}">${dots}</div></header>
+  return `<header class="wz-head"><button type="button" class="btn link back" data-wz-exit>‹ Встречи</button>
+      <button type="button" class="btn link" data-wz-done>Шпаргалка ›</button></header>
+    <div class="dots" aria-label="Шаг ${step + 1} из ${STEPS.length}">${dots}</div>
     <div class="wz">
-      <span class="eyebrow">Шаг ${step + 1} из ${STEPS.length}</span>
       <h1 class="wz-title">${esc(s.title)}</h1>
       <p class="muted">${esc(s.hint)}</p>
       ${s.fields.map((f) => fieldHtml(f, deal)).join("")}
@@ -133,7 +126,7 @@ export function dealListHtml(deals, todayIso) {
     const status = d.outcome || Number.isFinite(d.result) ? `Итог: ${Number.isFinite(d.result) ? fmtMoney(d.result, d.unit) : d.outcome.slice(0, 40)}` : whenLabel(d.date, todayIso);
     return `<button type="button" class="list-item" data-deal="${esc(d.id)}"><b>${esc(d.title || "Без названия")}</b><small>${esc(status)}${d.who ? ` · ${esc(d.who.slice(0, 40))}` : ""}</small></button>`;
   }).join("");
-  return `<header class="large-title"><h1>Подготовка</h1><p>15 минут до встречи экономят миллионы на ней</p></header>
-    <button type="button" class="btn primary huge" data-new-deal>Подготовиться к переговорам</button>
-    ${rows ? `<div class="list">${rows}</div>` : `<div class="card soft"><b>Как это работает</b><p class="meta">7 коротких шагов по методике Гарварда и Стэнфорда: границы, их интересы, первое предложение, обмен, готовые фразы. В конце — шпаргалка на один экран и репетиция с ИИ.</p></div>`}`;
+  return `<header class="large-title"><h1>Встречи</h1><p>15 минут подготовки экономят миллионы на встрече</p></header>
+    <button type="button" class="btn primary huge" data-new-deal>Подготовиться к встрече</button>
+    ${rows ? `<div class="list">${rows}</div>` : `<div class="card soft"><b>Как это работает</b><p class="meta">5 коротких шагов по методике Гарварда и Стэнфорда: цифры, их интересы, обмен, готовые фразы. Любой шаг можно пропустить. В конце — шпаргалка и репетиция с ИИ.</p></div>`}`;
 }

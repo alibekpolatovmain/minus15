@@ -37,10 +37,9 @@ export function playbookHtml(cards) {
   const groups = GROUPS.map((g) => `<details class="help"${g.id === "words" ? " open" : ""}><summary>${esc(g.title)} <small class="muted">&nbsp;${esc(g.sub)}</small></summary>
     ${TECHNIQUES.filter((t) => t.group === g.id).map((t) => techHtml(t, cards[`t:${t.id}`])).join("")}</details>`).join("");
   return `<header class="large-title"><h1>Приёмы</h1><p>Гарвард, Стэнфорд, Келлогг, Уортон, ФБР</p></header>
-    <article class="card"><span class="eyebrow">Подготовка за 15 минут</span>
-      <ol class="method">${METHOD.map(([h, p]) => `<li><b>${esc(h)}.</b> ${esc(p)}</li>`).join("")}</ol>
-      <button type="button" class="btn ghost" data-ntab-go="prep">Подготовиться по шагам</button></article>
+    <div class="alts"><button type="button" class="btn alt" data-sos-open><b>Завис? 8 готовых выходов</b><small>что сказать и что сделать прямо сейчас</small></button></div>
     ${groups}
+    <details class="help"><summary>Подготовка за 15 минут</summary><ol class="method">${METHOD.map(([h, p]) => `<li><b>${esc(h)}.</b> ${esc(p)}</li>`).join("")}</ol></details>
     <details class="help"><summary>Семь ловушек</summary><ul class="cues">${TRAPS.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></details>
     <details class="help"><summary>Источники</summary><p class="muted">${esc(SOURCES)}</p></details>`;
 }

@@ -161,3 +161,43 @@ test("new cards met today count against the daily allowance", () => {
   const ids = pickDaily(["a", "b", "c", "d"], { a: met, b: met }, T, { total: 7, newPerDay: 3 });
   assert.deepEqual(ids, ["c"]);
 });
+
+import { PITCH_VERSIONS, PITCH_BLOCKS, RESCUE, pitchText, positionText } from "../js/neg/kit.js";
+
+test("pitch versions grow from 30 s to 5 min and always end with a question to them", () => {
+  const known = new Set(PITCH_BLOCKS.map((b) => b.k));
+  PITCH_VERSIONS.forEach((v) => {
+    v.blocks.forEach((k) => assert.ok(known.has(k), `${v.id}: ${k}`));
+    assert.equal(v.blocks[v.blocks.length - 1], "bridge", v.id);
+  });
+  const secs = PITCH_VERSIONS.map((v) => v.sec);
+  assert.deepEqual([...secs].sort((a, b) => a - b), secs);
+});
+
+test("pitch text joins only the filled blocks of a version, in order", () => {
+  const me = { now: "Я руковожу продуктом.", past: "", future: "Хочу пилот.", bridge: "Что для вас важно?" };
+  assert.equal(pitchText(me, PITCH_VERSIONS[1]), "Я руковожу продуктом. Хочу пилот. Что для вас важно?");
+});
+
+test("positioning line follows the value-proposition formula and skips empty parts", () => {
+  assert.equal(positionText({ forWho: "отделов продаж", pain: "сокращаем путь до встречи" }), "Для отделов продаж мы сокращаем путь до встречи.");
+  assert.equal(
+    positionText({ forWho: "банков", pain: "находим клиентов", unlike: "ручного поиска", proof: "40 клиентов" }),
+    "Для банков мы находим клиентов, в отличие от ручного поиска, потому что 40 клиентов."
+  );
+  assert.equal(positionText({}), "");
+});
+
+test("store keeps pitch texts and valid rehearsals, drops broken ones", () => {
+  const db = validate({ me: { now: "Я", story: 7, runs: { p30: { date: T, sec: 28 }, p2: { date: "x", sec: 10 }, p5: { date: T, sec: -1 } } } });
+  assert.equal(db.me.now, "Я");
+  assert.equal(db.me.story, "");
+  assert.deepEqual(db.me.runs, { p30: { date: T, sec: 28 } });
+  assert.deepEqual(validate(null).me.runs, {});
+});
+
+test("every SOS tile has something to say and something to do", () => {
+  assert.equal(RESCUE.length, 8);
+  RESCUE.forEach((r) => assert.ok(r.say.length && r.act && r.title, r.id));
+  assert.equal(new Set(RESCUE.map((r) => r.id)).size, RESCUE.length);
+});

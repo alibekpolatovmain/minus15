@@ -1,5 +1,6 @@
 // On-device storage for «Переговоры»: drill progress, streak and deal preparations. Separate key from the workout diary.
 import { INTERVALS } from "./srs.js";
+import { PITCH_BLOCKS, PITCH_VERSIONS, POSITION_FIELDS } from "./kit.js";
 
 const KEY = "minus15:neg:v1";
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -25,9 +26,25 @@ const amount = (v) => {
   return raw !== "" && Number.isFinite(n) && n >= 0 && n <= MAX_NUMBER ? n : null;
 };
 
-export const DEFAULTS = Object.freeze({ version: 1, cards: {}, streak: null, deals: [], log: [] });
+export const DEFAULTS = Object.freeze({ version: 1, cards: {}, streak: null, deals: [], log: [], me: {} });
 
-function cleanCard(c) {
+const ME_TEXTS = [...PITCH_BLOCKS.map((b) => b.k), ...POSITION_FIELDS.map((f) => f.k)];
+const MAX_PITCH_SEC = 3600;
+
+/** Self-presentation: block texts, positioning fields and the last rehearsal of each version. */
+export function cleanMe(raw) {
+  const me = {};
+  ME_TEXTS.forEach((k) => { me[k] = text(raw?.[k]); });
+  me.runs = {};
+  PITCH_VERSIONS.forEach((v) => {
+    const r = raw?.runs?.[v.id];
+    const sec = Math.round(Number(r?.sec));
+    if (date(r?.date) && Number.isFinite(sec) && sec >= 0 && sec <= MAX_PITCH_SEC) me.runs[v.id] = { date: r.date, sec };
+  });
+  return me;
+}
+
+export function cleanCard(c) {
   const box = Math.round(Number(c?.box));
   if (!Number.isFinite(box) || !date(c?.due)) return null;
   return { box: Math.min(INTERVALS.length - 1, Math.max(0, box)), due: c.due, right: Math.max(0, Number(c.right) || 0), wrong: Math.max(0, Number(c.wrong) || 0) };
@@ -48,7 +65,7 @@ export function cleanDeal(d) {
 }
 
 export function validate(raw) {
-  if (!raw || typeof raw !== "object") return { ...DEFAULTS, cards: {}, deals: [], log: [] };
+  if (!raw || typeof raw !== "object") return { ...DEFAULTS, cards: {}, deals: [], log: [], me: cleanMe(null) };
   const cards = {};
   Object.entries(raw.cards || {}).forEach(([id, c]) => {
     const card = CARD_ID_RE.test(id) ? cleanCard(c) : null;
@@ -65,6 +82,7 @@ export function validate(raw) {
     streak,
     deals: (Array.isArray(raw.deals) ? raw.deals : []).map(cleanDeal).filter(Boolean).slice(-MAX_DEALS),
     log,
+    me: cleanMe(raw.me),
   };
 }
 

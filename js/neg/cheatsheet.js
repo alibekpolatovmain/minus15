@@ -2,7 +2,7 @@
 import { esc } from "../ui.js";
 import { zopa, fmtMoney, fmtShort, concessionLadder } from "./numbers.js";
 import { VOICE_RULES } from "./content.js";
-import { whenLabel, dealWarnings } from "./prep.js";
+import { whenLabel, dealWarnings, LADDER_LABELS } from "./prep.js";
 
 const lines = (text) => String(text || "").split(/\n+/).map((l) => l.trim()).filter(Boolean);
 const block = (title, body) => (body ? `<section class="cs-block"><h3>${esc(title)}</h3>${body}</section>` : "");
@@ -31,40 +31,61 @@ function zopaHtml(d) {
 }
 
 function numbersHtml(d) {
-  const cell = (label, v) => `<p><span>${label}</span><b>${esc(fmtShort(v))}</b></p>`;
+  const cell = (label, v, main = false) => `<p class="${main ? "main" : ""}"><span>${label}</span><b>${esc(fmtMoney(v))}</b></p>`;
   const steps = concessionLadder({ anchor: d.anchor, target: d.target, side: d.side });
-  return `<div class="cs-nums">${cell("Якорь", d.anchor)}${cell("Цель", d.target)}${cell("Ухожу", d.walk)}</div>
+  return `<div class="cs-nums">${cell("Ухожу, если хуже", d.walk, true)}${cell("Цель", d.target)}${cell("Первое предложение", d.anchor)}</div>
     ${zopaHtml(d)}
-    ${steps.length ? `<p class="f-label">Уступки</p><div class="chips">${steps.map((v) => `<span class="chip">${esc(fmtShort(v))}</span>`).join("<span class='arrow'>→</span>")}</div>` : ""}
+    ${steps.length ? `<p class="f-label">Уступки по шагам</p><div class="ladder-row">${steps.map((v, i) => `<span><small>${LADDER_LABELS[i]}</small>${esc(fmtShort(v))}</span>`).join("")}</div>` : ""}
     ${dealWarnings(d).map((w) => `<p class="warn-line">${esc(w)}</p>`).join("")}`;
 }
 
-export function cheatSheetHtml(d, todayIso) {
+const first = (text) => lines(text)[0] || "";
+const sentence = (text) => (/[.!?…]$/.test(text) ? text : `${text}.`);
+
+/** Answers to the three pushes every buyer makes, using the deal's own trade-offs where they exist. */
+function pushbackHtml(d) {
+  const trade = d.askBack ? d.askBack : "предоплату, срок договора или объём";
+  const rows = [
+    ["Дайте скидку", `Обсудим. Если скидка, то что меняем взамен: ${trade}?`],
+    ["Пилот бесплатно", "Пилот возможен. Давайте заранее решим, какие цифры будут успехом, и если достигнем — подписываем договор. Справедливо?"],
+    ["У конкурента дешевле", "Похоже, бюджет сейчас главный вопрос. Что именно вы сравниваете у нас и у них?"],
+  ];
+  return rows.map(([q, a]) => `<div class="push"><b>«${esc(q)}»</b><p>${esc(a)}</p></div>`).join("");
+}
+
+function offerLine(d) {
+  const interest = first(d.theirInterests);
+  const what = d.meso1 || (Number.isFinite(d.anchor) ? fmtMoney(d.anchor, d.unit) : "");
+  if (!what) return "";
+  return `${interest ? `Исходя из того, что вам важно ${interest.charAt(0).toLowerCase()}${interest.slice(1)}, предлагаю` : "Предлагаю"} ${what}.${d.anchorWhy ? ` ${sentence(first(d.anchorWhy))}` : ""}`;
+}
+
+export function cheatSheetHtml(d, todayIso, pitch30 = "") {
   const meso = [d.meso1, d.meso2, d.meso3].filter((m) => m && m.trim());
+  const opener = first(d.audit) || pitch30;
+  const offer = offerLine(d);
   const debrief = d.outcome || Number.isFinite(d.result)
     ? block("Итог", `${Number.isFinite(d.result) ? `<p><b>${esc(fmtMoney(d.result, d.unit))}</b>${Number.isFinite(d.target) ? ` при цели ${esc(fmtMoney(d.target, d.unit))}` : ""}</p>` : ""}${para(d.outcome)}${d.worked ? `<p><b>Сработало:</b> ${esc(d.worked)}</p>` : ""}${d.change ? `<p><b>В следующий раз:</b> ${esc(d.change)}</p>` : ""}`)
     : "";
-  return `<header class="wz-head"><button type="button" class="btn link back" data-cs-exit>‹ Все подготовки</button></header>
-    <header class="large-title cs-title"><h1>${esc(d.title || "Без названия")}</h1><p>${esc(whenLabel(d.date, todayIso))}${d.who ? ` · ${esc(d.who)}` : ""}</p></header>
+  return `<header class="wz-head"><button type="button" class="btn link back" data-cs-exit>‹ Встречи</button>
+      <button type="button" class="btn small sos-mini" data-sos-open>Завис? SOS</button></header>
+    <header class="cs-title"><h1>${esc(d.title || "Без названия")}</h1><p class="muted">${esc(whenLabel(d.date, todayIso))}${d.who ? ` · ${esc(d.who)}` : ""}</p></header>
     ${debrief}
     <article class="card cs">${numbersHtml(d)}</article>
-    ${block("План Б", para(d.batna))}
-    ${block("Им на самом деле нужно", para(d.theirInterests))}
-    ${block("Начать с", quotes(d.audit))}
+    ${block("Начать с", opener ? `<p class="dr-quote">${esc(opener)}</p>` : "")}
     ${block("Спросить", quotes(d.questions))}
-    ${block("Обоснование цены", para(d.anchorWhy))}
-    ${block("Три варианта на выбор", meso.length ? `<ol class="cues">${meso.map((m) => `<li>${esc(m)}</li>`).join("")}</ol>` : "")}
+    ${block("Предложить", `${offer ? `<p class="dr-quote">${esc(offer)}</p>` : ""}${meso.length > 1 ? `<ol class="cues">${meso.map((m) => `<li>${esc(m)}</li>`).join("")}</ol>` : ""}`)}
+    ${block("Если давят", pushbackHtml(d))}
     ${block("Обмен", `${d.cheapForMe ? `<p><b>Могу дать:</b> ${esc(d.cheapForMe)}</p>` : ""}${d.askBack ? `<p><b>Попрошу взамен:</b> ${esc(d.askBack)}</p>` : ""}`)}
+    ${block("План Б", para(d.batna))}
     ${block("Если ниже точки ухода", quotes(d.walkLine))}
-    ${block("В конце встречи", para(d.nextStep))}
-    ${block("Как держаться", `<ul class="cues">${VOICE_RULES.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>`)}
-    <div class="alts">
-      <button type="button" class="btn alt" data-ai><b>Репетиция с ИИ</b><small>Claude сыграет вашего собеседника и разберёт ошибки</small></button>
-      <button type="button" class="btn alt" data-practice="price"><b>Потренировать торг</b><small>ситуации про цену и скидки</small></button>
-      <button type="button" class="btn alt" data-debrief><b>Разбор после встречи</b><small>3 вопроса, чтобы следующая прошла лучше</small></button>
-      <button type="button" class="btn alt" data-edit><b>Изменить подготовку</b></button>
+    ${block("К концу встречи", para(d.nextStep))}
+    <details class="help"><summary>Как держаться</summary><ul class="cues">${VOICE_RULES.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></details>
+    <div class="row2 cs-actions">
+      <button type="button" class="btn primary big" data-ai>Репетиция с ИИ</button>
+      <button type="button" class="btn big" data-debrief>Разбор после</button>
     </div>
-    <button type="button" class="btn link danger" data-delete>Удалить подготовку</button>`;
+    <div class="row2"><button type="button" class="btn link" data-edit>Изменить</button><button type="button" class="btn link danger" data-delete>Удалить</button></div>`;
 }
 
 /** Role-play brief for an AI chat: it plays the other side, then grades me against my own numbers. */
