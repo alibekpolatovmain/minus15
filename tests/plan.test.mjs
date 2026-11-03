@@ -264,3 +264,15 @@ test("exercise breakdown of a stopped workout lists only what was done", () => {
   assert.ok(parts.some((p) => p.ex === ex));
   assert.ok(parts.every((p) => session.steps.slice(0, firstWork + 1).some((s) => s.ex === p.ex)));
 });
+
+test("pelvic floor routine: 6–9 minutes, lying → sitting → standing, every squeeze voiced and with a video", () => {
+  const session = buildSession("pelvic", null, 2, 4);
+  const min = sessionTotals(session, 95).seconds / 60;
+  assert.ok(min >= 6 && min <= 9, `pelvic ${min}`);
+  const keys = session.steps.filter((s) => s.phase === "flow").map((s) => s.ex);
+  assert.deepEqual(keys.filter((k) => k.startsWith("pf")), ["pfLong", "pfQuick", "pfSit", "pfStand"]);
+  keys.forEach((k) => {
+    assert.ok(EXERCISES[k].tempo, `${k} has no voice`);
+    assert.ok(EXERCISES[k].video, `${k} has no video`);
+  });
+});

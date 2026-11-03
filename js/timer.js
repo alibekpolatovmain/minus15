@@ -11,8 +11,8 @@ const MIN_ACTIVE_TO_RECORD_S = 30;
 const PARTS_SHOWN = 6;
 const PHASE = { warm: "РАЗМИНКА", work: "РАБОТА", rest: "ОТДЫХ", cool: "ЗАМИНКА", flow: "СПИНА И ШЕЯ", prep: "ПРИГОТОВЬСЯ" };
 const PAUSE_LIKE = new Set(["rest", "prep"]);
-const SOFT_KINDS = new Set(["light", "stand", "morning", "chin", "office"]);
-const FLOW_LABEL = { morning: "УТРО", chin: "ПОДБОРОДОК", light: "СПИНА И ШЕЯ", office: "ОФИС" };
+const SOFT_KINDS = new Set(["light", "stand", "morning", "chin", "office", "pelvic"]);
+const FLOW_LABEL = { morning: "УТРО", chin: "ПОДБОРОДОК", light: "СПИНА И ШЕЯ", office: "ОФИС", pelvic: "ТАЗОВОЕ ДНО" };
 const NUM_WORDS = ["", "один", "два", "три", "четыре", "пять", "шесть"];
 const NUM_GEN = ["", "одного", "двух", "трёх", "четырёх", "пяти", "шести"];
 // Spoken rhythm: starts after «Начали!», keeps quiet for the side switch and the final 3-2-1 beeps.

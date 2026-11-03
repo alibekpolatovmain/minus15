@@ -20,8 +20,8 @@ const WEIGHT_EVERY_DAYS = 7;
 const WALK_NORM = [[2, 4], [4, 5], [8, 6], [Infinity, 7]];
 const WEEKDAY_SHORT = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
 const WEEKDAYS = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
-const KIND_TITLE = { light: "Спина и шея", stand: "Стоя, без пола", morning: "Утренний комплекс", chin: "Шея и подбородок", office: "Офис: перерыв от сидения" };
-const SOFT_KINDS = new Set(["light", "stand", "morning", "chin", "office"]);
+const KIND_TITLE = { light: "Спина и шея", stand: "Стоя, без пола", morning: "Утренний комплекс", chin: "Шея и подбородок", office: "Офис: перерыв от сидения", pelvic: "Тазовое дно: мужское здоровье" };
+const SOFT_KINDS = new Set(["light", "stand", "morning", "chin", "office", "pelvic"]);
 // One full office routine a day; short stand-ups every 30–60 min do the rest (Dunstan 2012).
 const OFFICE_GOAL = 1;
 
@@ -412,7 +412,7 @@ function finishSession(result, params, resetSeen) {
 
 /* ---------- «Видео-тренировки» ---------- */
 function openVideos() {
-  videoListSheet({ weight: currentWeight(), onPick: (video) => playVideo(video, {
+  videoListSheet({ weight: currentWeight(), sex: db.profile.sex, onPick: (video) => playVideo(video, {
     weight: currentWeight(),
     onEnd: (r) => (r ? saveVideo(r.video.id, r.sec, r.kcal) : toast("Меньше минуты, записывать нечего")),
     onDraft: (d) => (d ? saveDraft({ ...d, date: today() }) : clearDraft())
@@ -491,6 +491,8 @@ function otherSheet() {
       ${item("office", null, "Офис", "стоя и сидя, без пота, раз в день")}
       ${item("stand", null, "Стоя, без пола", "хлопки, колени, глубокий присед")}
     </div>
+    ${db.profile.sex === "f" ? "" : `<p class="list-group">Мужское здоровье</p>
+    <div class="list"><button type="button" class="list-item" data-info="pelvic"><b>Тазовое дно (Кегель)</b><small>${minLabel(planFor("pelvic", null, p))} · программа на 3 месяца · эрекция и контроль</small></button></div>`}
     <p class="list-group">Без таймера</p>
     <div class="list"><button type="button" class="list-item" data-walk><b>Прогулка</b><small>отметить километры или шаги</small></button></div>`);
   body.addEventListener("click", onTodayClick);
@@ -509,7 +511,20 @@ const INFO_INTRO = {
   morning: "Делайте сразу после сна, можно прямо на кровати или на коврике. Снимает утреннюю скованность в спине и шее.",
   light: "Мягкая тренировка для спины, шеи и осанки. Подходит на следующий день после силовой.",
   stand: "Всё стоя, без пола и прыжков: пресс, ноги и пульс.",
+  pelvic: "Мышцы тазового дна сжимают основание пениса и помогают удерживать эрекцию и контролировать семяизвержение. Тренировать их можно незаметно, без формы и коврика. Мышцы крепнут за 4–6 недель, эффект на эрекцию — через 3–6 месяцев.",
   chin: "Жир под подбородком уходит только вместе с общим весом, заметно после −5…8 кг. Эти упражнения укрепляют шею и возвращают голову на место: осанка головы меняется уже за 3–4 недели, и подбородок меньше «складывается». Лучше каждый день."
+};
+
+// Week-by-week plan for programs you keep up for months (Dorey et al., 2005: daily for 3 months, then keep it up).
+const INFO_PROGRAM = {
+  pelvic: `<p class="list-group">Программа</p>
+    <ol class="cues">
+      <li><b>Недели 1–2.</b> Этот комплекс раз в день. Стоя 10 с не держится — держите сколько получается.</li>
+      <li><b>Недели 3–12.</b> Два раза в день: утром и вечером.</li>
+      <li><b>Дальше.</b> Раз в день, чтобы не потерять результат.</li>
+      <li><b>Весь день.</b> После туалета 2–3 сильных сжатия, чтобы не было капель. Сжимайте при кашле и перед подъёмом тяжёлого.</li>
+    </ol>
+    <p class="homeline">Сильнее всего на эрекцию влияют ходьба, тренировки и снижение веса: всё это уже есть в вашем плане. Если проблема держится больше 3 месяцев, сходите к урологу: иногда это первый знак проблем с сосудами.</p>`
 };
 
 /** «?»: what is inside a session, what each exercise gives and how many calories. */
@@ -523,7 +538,7 @@ function infoSheet(kind, type) {
       <summary><span class="info-thumb">${frameHtml(k, 0, level)}</span><span class="info-text"><b>${esc(exName(k, level))}</b><small>${esc(EXERCISES[k].gives)}</small></span><span class="info-kcal"><b>${Math.round(kcalPerMin(k, weight))}</b><small>ккал/мин</small></span></summary>
       <div class="info-more">${howToHtml(k, level, null, { showTitle: false })}<button type="button" class="btn link info-collapse" data-collapse>Свернуть ▲</button></div>
     </details>`).join("");
-  const intro = INFO_INTRO[kind] ? `<p class="muted">${esc(INFO_INTRO[kind])}</p>` : "";
+  const intro = (INFO_INTRO[kind] ? `<p class="muted">${esc(INFO_INTRO[kind])}</p>` : "") + (INFO_PROGRAM[kind] || "");
   const extra = kind === "morning" || kind === "chin" ? `<button type="button" class="btn big" data-toggle="${kind}">${dayOf(today())[kind] ? "Снять отметку" : "Отметить без таймера"}</button>` : "";
   const body = openSheet(`<h3 class="sheet-title">${esc(kindTitle(kind, type))}</h3>
     <p class="info-sum">${minLabel(session)} · ≈${Math.round(totals.kcal)} ккал за всю тренировку</p>
@@ -801,7 +816,8 @@ function bindHelp() {
   $("opt-sound").addEventListener("change", (e) => commit({ ...db, sound: e.target.checked }));
   $("opt-tempo").addEventListener("change", (e) => commit({ ...db, tempo: e.target.checked }));
   $("help-ex").innerHTML = ["A", "B", "C"].map((t) => `<h2 class="help-group">${esc(WORKOUTS[t].title)}</h2>${WORKOUTS[t].list.map((k) => `<details class="ex"><summary>${esc(EXERCISES[k].name)}</summary>${howToHtml(k, db.level)}</details>`).join("")}`).join("")
-    + `<h2 class="help-group">Спина, шея, подбородок, стоя без пола</h2>${["birdDog", "chinTuck", "chinLift", "headLift", "neckFront", "neckSide", "clapLeg", "kneePush", "kneeElbow", "deepSquat"].map((k) => `<details class="ex"><summary>${esc(EXERCISES[k].name)}</summary>${howToHtml(k, db.level)}</details>`).join("")}`;
+    + `<h2 class="help-group">Спина, шея, подбородок, стоя без пола</h2>${["birdDog", "chinTuck", "chinLift", "headLift", "neckFront", "neckSide", "clapLeg", "kneePush", "kneeElbow", "deepSquat"].map((k) => `<details class="ex"><summary>${esc(EXERCISES[k].name)}</summary>${howToHtml(k, db.level)}</details>`).join("")}`
+    + (db.profile.sex === "f" ? "" : `<h2 class="help-group">Тазовое дно</h2>${["pfLong", "pfQuick", "pfSit", "pfStand"].map((k) => `<details class="ex"><summary>${esc(EXERCISES[k].name)}</summary>${howToHtml(k, db.level)}</details>`).join("")}`);
 }
 
 /* ---------- tabs ---------- */

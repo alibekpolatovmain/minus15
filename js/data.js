@@ -7,7 +7,8 @@ export const YT = (id) => `https://www.youtube.com/watch?v=${id}`;
 export const FIGURE_VIEWBOX = {
   snowAngel: "80 0 140 192", chinTuck: "104 38 112 128",
   sitStand: "70 12 170 172", soleus: "80 40 150 144", scapSqueeze: "90 12 120 172",
-  headLift: "40 108 240 78", clapLeg: "74 12 150 172", kneeElbow: "70 12 160 172"
+  headLift: "40 108 240 78", clapLeg: "74 12 150 172", kneeElbow: "70 12 160 172",
+  pfLie: "40 100 240 86", pfSit: "70 12 170 172", pfStand: "90 12 120 172"
 };
 export const FIGURES = {
   sitStand: [
@@ -38,6 +39,10 @@ export const FIGURES = {
     { head: [150, 34], floor: true, p: "M150 52 L150 112 M150 62 L102 64 M150 62 L198 64 M146 112 L142 176 M154 112 L158 176" },
     { head: [146, 34], floor: true, p: "M146 52 L146 112 M146 112 L144 176 M150 112 L194 112 L198 160 M146 62 L170 96 L180 126 M146 62 L158 100 L180 126", marks: "M166 140 L160 148 M180 142 L180 152 M194 140 L200 148" }
   ],
+  // Pelvic floor: the body position plus the pelvis lit up and an arrow «pull in and up».
+  pfLie: [{ head: [236, 162], floor: true, p: "M220 166 L112 166 M112 166 L88 132 L66 176", marks: "M106 166 L126 166", arrow: "M132 146 L168 146 M160 138 L168 146 L160 154" }],
+  pfSit: [{ head: [142, 58], chair: true, floor: true, p: "M138 76 L128 116 M128 116 L172 118 L172 176 M136 86 L162 108", marks: "M120 113 L134 116", arrow: "M204 150 L204 116 M196 124 L204 116 L212 124" }],
+  pfStand: [{ head: [150, 34], floor: true, p: "M150 52 L150 112 M150 62 L128 106 M150 62 L172 106 M146 112 L142 176 M154 112 L158 176", marks: "M142 112 L158 112", arrow: "M202 132 L202 98 M194 106 L202 98 L210 106" }],
   kneeElbow: [
     { head: [150, 34], floor: true, p: "M150 52 L150 112 M150 64 L110 46 L136 24 M150 64 L190 46 L164 24 M146 112 L142 176 M154 112 L158 176" },
     { head: [148, 34], floor: true, p: "M150 52 L154 112 M156 112 L162 176 M150 112 L116 98 L128 142 M146 62 L110 86 L136 38 M156 62 L188 46 L160 28", arrow: "M98 140 L98 112 M91 119 L98 112 L105 119" }
@@ -132,6 +137,28 @@ const BASE_EXERCISES = {
     img: "Plank", frames: 1, frameIndex: 1, muscles: "Весь кор, плечи",
     cues: ["Локти под плечами", "Ягодицы и пресс напряжены", "Тяжело держать? По 10 с с паузой 3 с, так советует Макгилл"],
     stop: "Стоп, если поясница провисла: встаньте на колени."
+  },
+  // pelvic floor (Kegel): the Dorey protocol, lying → sitting → standing, slow holds plus quick squeezes
+  pfLong: {
+    name: "Долгие сжатия лёжа", figure: "pfLie", frames: 1, muscles: "Мышцы тазового дна",
+    home: "Как найти мышцу: сожмите так, будто сдерживаете мочу и газы одновременно. Пенис чуть подтягивается, яички приподнимаются. Это и есть нужное движение.",
+    cues: ["Лёжа на спине, колени согнуты", "Сжать и подтянуть внутрь, держать 5 с, затем отпустить", "Ягодицы, живот и бёдра расслаблены, дыхание не задерживать"],
+    stop: "Не тренируйтесь, прерывая мочеиспускание: так можно только один раз найти мышцу. Боль при сжатии — стоп."
+  },
+  pfQuick: {
+    name: "Быстрые сжатия", figure: "pfLie", frames: 1, muscles: "Мышцы тазового дна",
+    cues: ["Лёжа на спине, колени согнуты", "Сильно сжать и сразу отпустить, раз в секунду", "Между сжатиями полностью расслабить"],
+    stop: "Устали и сжатие стало слабым — просто отдохните до конца подхода."
+  },
+  pfSit: {
+    name: "Сжатия сидя", figure: "pfSit", frames: 1, muscles: "Мышцы тазового дна",
+    cues: ["Сидя ровно, стопы на полу", "Сжать и подтянуть, держать 7 с", "Отпустить медленно и отдохнуть"],
+    stop: "Боль при сжатии — стоп."
+  },
+  pfStand: {
+    name: "Сжатия стоя", figure: "pfStand", frames: 1, muscles: "Мышцы тазового дна",
+    cues: ["Стоя, стопы на ширине плеч", "Сжать и подтянуть, держать до 10 с", "Не держится 10 с — держите сколько получается"],
+    stop: "Боль при сжатии — стоп."
   },
   // mobility / neck / chin
   chinLift: {
@@ -297,7 +324,11 @@ const DETAILS = {
   deskPush: [3.8, "Грудь и руки без пола и без пота: держит мышцы в тонусе между тренировками."],
   scapSqueeze: [2, "Разворачивает плечи после клавиатуры, снимает напряжение между лопатками."],
   soleus: [1.8, "Работает, даже пока вы печатаете: помогает обмену сахара при сидении."],
-  hipFlexor: [2, "Снимает зажим бёдер от сидения, который тянет поясницу."]
+  hipFlexor: [2, "Снимает зажим бёдер от сидения, который тянет поясницу."],
+  pfLong: [1.5, "Эти мышцы сжимают основание пениса и помогают удерживать эрекцию."],
+  pfQuick: [1.5, "Быстрая реакция мышц: контроль семяизвержения и нет капель после туалета."],
+  pfSit: [1.5, "Те же мышцы в положении, в котором вы проводите день."],
+  pfStand: [1.8, "Самое трудное положение: мышцы работают против веса тела."]
 };
 
 // Demo videos, each checked frame by frame: [YouTube id, label, start s, end s] — only the demonstration plays.
@@ -316,6 +347,10 @@ const VIDEOS = {
   burpee: ["50-0F_gQHFI", "Бёрпи шагом · 0:46", 4, 50],
   climber: ["KdMg0xTzmus", "Скалолаз · 0:24"],
   plank: ["_UsSBvVQp-s", "Планка на локтях · 0:30"],
+  pfLong: ["rG91-H4wrlY", "Как найти мышцу: внутрь и вверх · 0:23"],
+  pfQuick: ["nOU4StdOWkY", "Быстрые сжатия лёжа · 0:57"],
+  pfSit: ["uIG7et-H0wQ", "Сжатия сидя с удержанием · 0:17"],
+  pfStand: ["WTL_x5LnX1c", "Сжатия стоя и в движении · 0:22"],
   chinLift: ["VacrvQfjgkA", "Подбородок к потолку · 0:42", 172, 214],
   headLift: ["O0LDnTcSiek", "Подъём головы лёжа · 0:17", 2, 19],
   chinTuck: ["H0TWk06p5s4", "Втягивание подбородка · 0:15"],
@@ -344,6 +379,9 @@ const VIDEOS = {
 
 // One-line evidence for why each exercise is in the programme (shown under «Почему именно это упражнение»).
 const WHY = {
+  pfLong: "В исследовании Dorey и соавт. (2005) мужчины с эректильной дисфункцией каждый день делали такие сжатия лёжа, сидя и стоя. Через 6 месяцев у 40% эрекция стала нормальной, ещё у 35% улучшилась.",
+  pfQuick: "У мужчин с преждевременным семяизвержением 12 недель тренировки тазового дна дали контроль примерно в 8 случаях из 10 (Pastore и соавт., 2014).",
+  pfStand: "Сжатие стоя сразу после туалета выдавливает остаток мочи и убирает подтекание капель (Paterson и соавт., 1997).",
   squat: "Многосуставное упражнение на самые крупные мышцы тела. Такие упражнения ACSM ставит в основу любой силовой программы (позиция ACSM, 2009): больше мышц работает, больше калорий уходит.",
   pushup: "Отжимания дают такой же прирост силы, как жим лёжа при сопоставимой нагрузке (Calatayud и соавт., 2015). У мужчин, которые могут отжаться 40+ раз, сердечно-сосудистых болезней было на 96% меньше, чем у тех, кто меньше 10 (Yang и соавт., JAMA, 2019).",
   bridge: "Ягодицы в мосту включаются сильнее, чем в приседе (ЭМГ-исследования Contreras, 2015). Сильные ягодицы разгружают поясницу при сидячей работе.",
@@ -412,6 +450,10 @@ const TEMPO = {
   neckFront: [["Дави", 1.5], ["Держи", 8.5], ["Отпусти", 3]],
   neckSide: [["Дави", 1.5], ["Держи", 8.5], ["Отпусти", 3]],
   breathe: [["Вдох", 4], ["Выдох", 6]],
+  pfLong: [["Сжать и подтянуть", 2], ["Держи", 5], ["Отпустить", 2], ["Отдых", 4]],
+  pfQuick: [["Сжать", 1.2], ["Отпустить", 1.2]],
+  pfSit: [["Сжать и подтянуть", 2], ["Держи", 7], ["Отпустить", 2], ["Отдых", 5]],
+  pfStand: [["Сжать и подтянуть", 2], ["Держи", 10], ["Отпустить", 2], ["Отдых", 6]],
   stepJack: [["Шаг, руки вверх", 1.8], ["Руки вниз", 1.8]],
   clapLeg: [["Правая, хлопок", 1.8], ["Левая, хлопок", 1.8]],
   kneePush: [["Колено вверх", 1], ["Толкай", 2], ["Вниз", 1]],
@@ -489,6 +531,8 @@ export const COOLDOWN = [["calfStretch", 60], ["child", 60], ["kneeChest1", 60],
 // Grouped by body position so you change position as rarely as possible: lying on back → on stomach → on all fours → sitting.
 export const LIGHT_FLOW = [["kneesChest", 45], ["bridge", 60], ["deadbug", 60], ["superman", 45], ["cat", 60], ["birdDog", 90], ["child", 45], ["chinTuck", 60], ["neckFront", 90], ["neckSide", 90], ["neckStretch", 60], ["breathe", 60]];
 export const MORNING_FLOW = [["kneesChest", 45], ["bridge", 60], ["cat", 60], ["birdDog", 90], ["child", 30], ["chinTuck", 60]];
+// Pelvic floor, ≈7 min: lying is easiest, standing hardest (Dorey et al., 2005); the bridge adds glutes with the same squeeze.
+export const PELVIC_FLOW = [["pfLong", 90], ["pfQuick", 45], ["bridge", 60, "Мост со сжатием"], ["pfSit", 90], ["pfStand", 90]];
 export const CHIN_FLOW = [["headLift", 60], ["chinTuck", 60], ["chinLift", 75], ["neckFront", 90], ["neckSide", 90], ["neckStretch", 60]];
 // Office, ≈6 min: big legs first to break the sitting, then push, shoulder blades and neck, seated calves, stretches last.
 export const OFFICE_FLOW = [["sitStand", 40], ["deskPush", 40], ["scapSqueeze", 40], ["chinTuck", 40], ["soleus", 45], ["hipFlexor", 60], ["neckStretch", 60]];

@@ -3,7 +3,7 @@ import { RULES } from "./plan.js";
 
 const KEY = "minus15:db:v1";
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const KINDS = new Set(["A", "B", "C", "short", "light", "stand", "morning", "chin", "office", "video"]);
+const KINDS = new Set(["A", "B", "C", "short", "light", "stand", "morning", "chin", "office", "pelvic", "video"]);
 const VIDEO_ID_RE = /^[\w-]{11}$/;
 const FEELS = new Set(["easy", "ok", "hard", null]);
 

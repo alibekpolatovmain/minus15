@@ -1,8 +1,8 @@
 // «Видео-тренировки»: follow-along workouts by P4P WORKOUTS, embedded from YouTube. Played time is counted, so a video stopped halfway still records its calories.
 import { esc, openSheet, closeSheet } from "./ui.js";
 
-// MET by intensity (Compendium of Physical Activities 2011): calisthenics moderate 3.8, vigorous circuits 8.0; standing fat-burn sits between.
-const MET = { easy: 3.8, mid: 5, hard: 7 };
+// MET by intensity (Compendium of Physical Activities 2011): stretching 2.3–2.5, calisthenics moderate 3.8, vigorous circuits 8.0; standing fat-burn sits between.
+const MET = { soft: 2.5, easy: 3.8, mid: 5, hard: 7 };
 export const VIDEO_WORKOUTS = [
   { id: "plr3QNEDOTo", title: "Утренняя стоя: сжигаем жир", sub: "уровень 1, без пола", min: 11, met: MET.mid, group: "start" },
   { id: "nV80y796Gwk", title: "Грудь", sub: "уровень 1", min: 10, met: MET.easy, group: "start" },
@@ -16,7 +16,8 @@ export const VIDEO_WORKOUTS = [
   { id: "xJ9EmAmEjCM", title: "Body Booster: всё тело", sub: "быстрый темп", min: 12, met: MET.hard, group: "more" },
   { id: "kIaqbrWBexY", title: "Грудь", sub: "уровень 2", min: 12, met: MET.mid, group: "more" },
   { id: "oXSdZeQHA6U", title: "Плечи дома", sub: "программа для новичков, день 10", min: 13, met: MET.mid, group: "more" },
-  { id: "TetN47J-Lxo", title: "Длинная: 500 ккал", sub: "25 минут, всё тело", min: 25, met: MET.hard, group: "more" }
+  { id: "TetN47J-Lxo", title: "Длинная: 500 ккал", sub: "25 минут, всё тело", min: 25, met: MET.hard, group: "more" },
+  { id: "llfAgrJxUf8", title: "Таз и тазовое дно", sub: "12 упражнений для мужчин, мягко", min: 9, met: MET.soft, group: "men" }
 ];
 const BY_ID = new Map(VIDEO_WORKOUTS.map((v) => [v.id, v]));
 export const videoTitle = (id) => BY_ID.get(id)?.title || "Видео";
@@ -31,7 +32,7 @@ const YT_PLAYING = 1;
 export const videoKcal = (video, weight, sec) => Math.round((video.met * weight * sec) / 3600);
 
 /* ---------- list ---------- */
-export function videoListSheet({ weight, onPick }) {
+export function videoListSheet({ weight, sex, onPick }) {
   const row = (v) => `<button type="button" class="vrow" data-video="${v.id}">
       <img src="https://i.ytimg.com/vi/${v.id}/mqdefault.jpg" alt="" loading="lazy">
       <span><b>${esc(v.title)}</b><small>${esc(v.sub)} · ${v.min} мин · ≈${videoKcal(v, weight, v.min * 60)} ккал</small></span></button>`;
@@ -39,7 +40,8 @@ export function videoListSheet({ weight, onPick }) {
   const body = openSheet(`<h3 class="sheet-title">Видео-тренировки</h3>
     <p class="muted">Делайте вместе с 3D-тренером под музыку. Голос на английском: смотрите на картинку и держите ритм. Калории считаю по времени, которое смотрели.</p>
     <p class="list-group">Для начала</p><div class="vlist">${group("start")}</div>
-    <p class="list-group">Посложнее</p><div class="vlist">${group("more")}</div>`);
+    <p class="list-group">Посложнее</p><div class="vlist">${group("more")}</div>
+    ${sex === "f" ? "" : `<p class="list-group">Мужское здоровье</p><div class="vlist">${group("men")}</div>`}`);
   body.addEventListener("click", (e) => {
     const id = e.target.closest("[data-video]")?.dataset.video;
     if (id) { closeSheet(); onPick(BY_ID.get(id)); }
