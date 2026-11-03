@@ -1,5 +1,5 @@
 // Offline cache for the home-screen app. Bump CACHE_VERSION on every release.
-const CACHE_VERSION = "minus15-v24";
+const CACHE_VERSION = "minus15-v25";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -115,7 +115,9 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Network-first for the page (so updates arrive), cache-first for everything else.
+// Network-first for the page (so updates arrive). Everything else: answer from the cache at once and refresh it
+// in the background, because GitHub Pages' CDN can serve a stale file for ~10 minutes after a release and that
+// copy would otherwise stay in the cache until the next version.
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
@@ -127,5 +129,10 @@ self.addEventListener("fetch", (event) => {
     );
     return;
   }
-  event.respondWith(caches.match(request).then((hit) => hit || fetch(request)));
+  const fresh = fetch(request, { cache: "no-cache" }).then((res) => {
+    if (res.ok) { const copy = res.clone(); caches.open(CACHE_VERSION).then((c) => c.put(request, copy)); }
+    return res;
+  });
+  event.respondWith(caches.match(request).then((hit) => hit || fresh));
+  event.waitUntil(fresh.catch(() => null));
 });
